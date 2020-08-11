@@ -1,0 +1,21 @@
+{
+  "name": "togate_server",
+  "version": "1.0.0",
+  "description": "ToGate Server for Sync Service ",
+  "main": "server_main.js",
+  "scripts": {
+    "test": "node bin/test_client.js",
+    "start": "nodemon bin/server_main.js"
+  },
+  "author": "BKSong",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^3.2.0",
+    "express": "^4.17.1",
+    "google-protobuf": "^3.5.2",
+    "nodemon": "^2.0.4",
+    "protobufjs": "^6.9.0",
+    "sqlite3": "https://github.com/mapbox/node-sqlite3/tarball/master",
+    "zlib": "^1.0.5"
+  }
+}
