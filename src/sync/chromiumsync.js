@@ -23,6 +23,7 @@ let errorMsg = csResponseMsg.lookupType('Error');
 let syncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
 
 /* 공용 상수 */
+
 // dataType(Key) : dataType(Value)
 // dataType이라고 하면 Key를 의미하는 것으로 함
 // value는 dataValue
@@ -30,7 +31,7 @@ const AllTypesObject = {  // == ALL_TYPES. //AllTypesObject is not iterable
   TOP_LEVEL_FOLDER: 'TOP_LEVEL_FOLDER',  // Top level folder name. 'Google Chrome' => 'ToGate'
   APPS: 'APPS',
   APP_LIST: 'APP_LIST',
-  APP_NOTIFICATION: 'APP_NOTIFICATION',
+  APP_NOTIFICATIONS: 'APP_NOTIFICATIONS',
   APP_SETTINGS: 'APP_SETTINGS',
   ARC_PACKAGE: 'ARC_PACKAGE',
   ARTICLE: 'ARTICLE',
@@ -83,7 +84,7 @@ const SyncErrorFrequency = {
 const SyncTypeName = {    // == SYNC_TYPE_TO_DESCRIPTOR
   APPS: entityMsg.lookup('app'),
   APP_LIST: entityMsg.lookup('appList'),
-  APP_NOTIFICATION: entityMsg.lookup('appNotification'),
+  APP_NOTIFICATIONS: entityMsg.lookup('appNotification'),
   APP_SETTINGS: entityMsg.lookup('appSetting'),
   ARC_PACKAGE: entityMsg.lookup('arcPackage'),
   ARTICLE: entityMsg.lookup('article'),
@@ -201,12 +202,12 @@ function getType(target) {  //키 값에 해당하는 value의 타입
   return Object.prototype.toString.call(target).slice(8, -1);
 };
 
-function syncTypeToProtocolDataTypeId(syncType) { //키 값에 해당하는 실제 proto dataType Id. e.g. (BOOKMARK) -> 32904
+function syncTypeToProtocolDataTypeId(syncType) { //키 값에 해당하는 실제 proto dataType Id. e.g. (BOOKMARKS) -> 32904
   /* SyncTypeName to DataType Id. */
   return SyncTypeName[syncType].id;
 };
 
-function protocolDataTypeIdToSyncType(protocolDataTypeId) { // 실제 proto dataType Id에 해당하는 syncType 키 값.  e.g. (32904) -> BOOKMARK
+function protocolDataTypeIdToSyncType(protocolDataTypeId) { // 실제 proto dataType Id에 해당하는 syncType 키 값.  e.g. (32904) -> BOOKMARKS
   for (let name in SyncTypeName) {
     if (SyncTypeName[name].id == protocolDataTypeId) {
       return name;
@@ -308,13 +309,13 @@ class SyncDataModel {
     const items = [
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_app`, name: 'App', parent_tag: ROOT_ID, sync_type: AllTypesObject.APPS, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_app_list`, name: 'App List', parent_tag: ROOT_ID, sync_type: AllTypesObject.APP_LIST, create_by_default: true }),
-      new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_app_notification`, name: 'App Notification', parent_tag: ROOT_ID, sync_type: AllTypesObject.APP_NOTIFICATION, create_by_default: true }),
+      new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_app_notification`, name: 'App Notification', parent_tag: ROOT_ID, sync_type: AllTypesObject.APP_NOTIFICATIONS, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_app_setting`, name: 'App Setting', parent_tag: ROOT_ID, sync_type: AllTypesObject.APP_SETTINGS, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_arc_package`, name: 'Arc Package', parent_tag: ROOT_ID, sync_type: AllTypesObject.ARC_PACKAGE, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, name: 'Bookmark', parent_tag: ROOT_ID, sync_type: AllTypesObject.BOOKMARKS, create_by_default: true }),
-      new PermanentItem({ tag: `bookmark_bar`, name: 'Bookmark Bar', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARK, create_by_default: true }),
-      new PermanentItem({ tag: `other_bookmarks`, name: 'Other Bookmark', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARK, create_by_default: true }),
-      new PermanentItem({ tag: `synced_bookmarks`, name: 'Synced Bookmark', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARK, create_by_default: false }),  // false
+      new PermanentItem({ tag: `bookmark_bar`, name: 'Bookmark Bar', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARKS, create_by_default: true }),
+      new PermanentItem({ tag: `other_bookmarks`, name: 'Other Bookmark', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARKS, create_by_default: true }),
+      new PermanentItem({ tag: `synced_bookmarks`, name: 'Synced Bookmark', parent_tag: `${TOP_LEVEL_FOLDER_TAG}_bookmark`, sync_type: AllTypesObject.BOOKMARKS, create_by_default: false }),  // false
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_autofill`, name: 'Autofill', parent_tag: ROOT_ID, sync_type: AllTypesObject.AUTOFILL, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_autofill_profile`, name: 'Autofill Profile', parent_tag: ROOT_ID, sync_type: AllTypesObject.AUTOFILL_PROFILE, create_by_default: true }),
       new PermanentItem({ tag: `${TOP_LEVEL_FOLDER_TAG}_autofill_wallet`, name: 'Autofill Wallet', parent_tag: ROOT_ID, sync_type: AllTypesObject.AUTOFILL_WALLET_DATA, create_by_default: true }),
@@ -737,9 +738,9 @@ class InternalServer {
     console.log('\x1b[33m%s\x1b[0m', 'handle get_updates');
     getUpdatesResponse.changesRemaining = 0;
     /* 모바일 북마크 생성. client UI에서 'Synced Bookmarks' => 'Mobild Bookmarks'로 rename
-    생성 실패할 경우 에러이므로 리턴*/ 
+    생성 실패할 경우 에러이므로 리턴*/
     /*
-    let sieve = UpdateSeive(getUpdatesMessage);
+    let sieve = UpdateSieve(getUpdatesMessage);
     if (getUpdatesMessage.createMobileBookmarksFolder) //&& !createPermanentBookmarkFolder for Mobile
     {
       return false;
@@ -752,6 +753,32 @@ class InternalServer {
     }
     */
   }
+};
+
+class UpdateSieve {
+  constructor() {
+    this.requestVersionMap = new Map(); //<modelType, int64_t>
+    //this.requestVersionMap.set(key, value) // value: '문자열', {}, function() {}, ..
+    //this.requestVersionMap.get(key) // key: value, '문자열', ...
+    //for of, .forEach, Array.from(myMap), Array.from(myMap.keys())
+    //delete, clear, entries, has, keys, values
+    this.responseVersionMap = new Map();
+  }
+  messageToVersionMap(getUpdatesMessage) {
+    assert(getUpdatesMessage.fromProgressMarker.length > 0, 'A GetUpdates request must have at least one progress marker.');
+    let requestVersionMap = new Map();
+    for (let i in getUpdatesMessage.fromProgressMarker) {
+      let marker = getUpdatesMessage.fromProgressMarker[i];
+      let version = 0;
+      // 최초 Request인 경우, token값이 없거나 비어있음 => version은 0을 유지함
+      if (marker.hasOwnProperty('token') && marker.token != '') {
+        //let parsed = StringToInt64(marker.token, version)
+        assert(parsed, "Unable to parse progress marker token.")
+      }
+      let modelType = marker.dataTypeId;
+    }
+  }
+
 };
 
 /* internal server 초기화 */
