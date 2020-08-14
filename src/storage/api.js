@@ -3,7 +3,7 @@ const async = require('async');
 
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../..');
-const querys = require(path.join(workspaceDir, 'src/storage/db/init.js'));
+const querys = require(path.join(workspaceDir, 'src/storage/db/init_constants.js'));
 
 
 
