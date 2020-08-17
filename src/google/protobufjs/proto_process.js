@@ -25,7 +25,9 @@ module.exports = class SyncPb {
     });
     console.log("sync area: ", msg);//여긴 synced영역(load 바깥)이므로, msg값이 undefiend
   }
-
+  getLoopbackServerProto() {
+    return protobuf.loadSync(PROTO_DIR + "/loopback_server.proto");
+  }
   getSyncProto() {
     // let data = protobuf.loadSync('./protobuf/new_protocol/app_list_specifics.proto');
     // let data1 = protobuf.loadSync('./protobuf/new_protocol/app_notification_specifics.proto');
