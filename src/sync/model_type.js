@@ -5,8 +5,8 @@ const workspaceDir = path.join(__dirname, '../..');
 let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process.js'));
 let pb = new sync_pb();
 let proto = pb.getSyncProto();  //sync.proto파일 Load
-let entityMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
-let syncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
+let pbEntityMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
+let pbSyncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
 
 // 동기화 지원하는 하위 항목의 열거형.
 // 각 동기화 객체에는 불변 객체 타입을 가질 수 있고, 객체의 타입은 보유한 데이터의 타입에서 유추됨
@@ -159,46 +159,46 @@ const SpecificsFieldName = {
 };
 
 const SyncTypeName = {    // == SYNC_TYPE_TO_DESCRIPTOR
-  APPS: entityMsg.lookup('app'),
-  APP_LIST: entityMsg.lookup('appList'),
-  APP_NOTIFICATIONS: entityMsg.lookup('appNotification'),
-  APP_SETTINGS: entityMsg.lookup('appSetting'),
-  ARC_PACKAGE: entityMsg.lookup('arcPackage'),
-  DEPRECATED_ARTICLES: entityMsg.lookup('article'),
-  AUTOFILL: entityMsg.lookup('autofill'),
-  AUTOFILL_PROFILE: entityMsg.lookup('autofillProfile'),
-  AUTOFILL_WALLET_DATA: entityMsg.lookup('autofillWallet'),
-  AUTOFILL_WALLET_METADATA: entityMsg.lookup('walletMetadata'),
-  BOOKMARKS: entityMsg.lookup('bookmark'),
-  DEVICE_INFO: entityMsg.lookup('deviceInfo'),
-  DICTIONARY: entityMsg.lookup('dictionary'),
-  EXPERIMENTS: entityMsg.lookup('experiments'),
-  EXTENSIONS: entityMsg.lookup('extension'),
-  HISTORY_DELETE_DIRECTIVES: entityMsg.lookup('historyDeleteDirective'),
-  SUPERVISED_USER_SETTINGS: entityMsg.lookup('managedUserSetting'),
-  DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS: entityMsg.lookup('managedUserSharedSetting'),
-  SUPERVISED_USER_WHITELISTS: entityMsg.lookup('managedUserWhitelist'),
-  DEPRECATED_SUPERVISED_USERS: entityMsg.lookup('managedUser'),
-  NIGORI: entityMsg.lookup('nigori'),
-  PASSWORDS: entityMsg.lookup('password'),
-  PREFERENCES: entityMsg.lookup('preference'),
-  PRINTERS: entityMsg.lookup('printer'),
-  PRIORITY_PREFERENCES: entityMsg.lookup('priorityPreference'),
-  READING_LIST: entityMsg.lookup('readingList'),
-  SEARCH_ENGINES: entityMsg.lookup('searchEngine'),
-  SESSIONS: entityMsg.lookup('session'),
-  SYNCED_NOTIFICATIONS: entityMsg.lookup('syncedNotification'),
-  SYNCED_NOTIFICATION_APP_INFO: entityMsg.lookup('syncedNotificationAppInfo'),
-  THEMES: entityMsg.lookup('theme'),
-  TYPED_URLS: entityMsg.lookup('typedUrl'),
-  EXTENSION_SETTINGS: entityMsg.lookup('extensionSetting'),
-  FAVICON_IMAGES: entityMsg.lookup('faviconImage'),
-  FAVICON_TRACKING: entityMsg.lookup('faviconTracking'),
-  DEPRECATED_WIFI_CREDENTIALS: entityMsg.lookup('wifiCredential'),
-  USER_EVENTS: entityMsg.lookup('userEvent'),
-  MOUNTAIN_SHARES: entityMsg.lookup('mountainShare'),
-  USER_CONSENTS: entityMsg.lookup('userConsent'),
-  SEND_TAB_TO_SELF: entityMsg.lookup('sendTabToSelf'),
+  APPS: pbEntityMsg.lookup('app'),
+  APP_LIST: pbEntityMsg.lookup('appList'),
+  APP_NOTIFICATIONS: pbEntityMsg.lookup('appNotification'),
+  APP_SETTINGS: pbEntityMsg.lookup('appSetting'),
+  ARC_PACKAGE: pbEntityMsg.lookup('arcPackage'),
+  DEPRECATED_ARTICLES: pbEntityMsg.lookup('article'),
+  AUTOFILL: pbEntityMsg.lookup('autofill'),
+  AUTOFILL_PROFILE: pbEntityMsg.lookup('autofillProfile'),
+  AUTOFILL_WALLET_DATA: pbEntityMsg.lookup('autofillWallet'),
+  AUTOFILL_WALLET_METADATA: pbEntityMsg.lookup('walletMetadata'),
+  BOOKMARKS: pbEntityMsg.lookup('bookmark'),
+  DEVICE_INFO: pbEntityMsg.lookup('deviceInfo'),
+  DICTIONARY: pbEntityMsg.lookup('dictionary'),
+  EXPERIMENTS: pbEntityMsg.lookup('experiments'),
+  EXTENSIONS: pbEntityMsg.lookup('extension'),
+  HISTORY_DELETE_DIRECTIVES: pbEntityMsg.lookup('historyDeleteDirective'),
+  SUPERVISED_USER_SETTINGS: pbEntityMsg.lookup('managedUserSetting'),
+  DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS: pbEntityMsg.lookup('managedUserSharedSetting'),
+  SUPERVISED_USER_WHITELISTS: pbEntityMsg.lookup('managedUserWhitelist'),
+  DEPRECATED_SUPERVISED_USERS: pbEntityMsg.lookup('managedUser'),
+  NIGORI: pbEntityMsg.lookup('nigori'),
+  PASSWORDS: pbEntityMsg.lookup('password'),
+  PREFERENCES: pbEntityMsg.lookup('preference'),
+  PRINTERS: pbEntityMsg.lookup('printer'),
+  PRIORITY_PREFERENCES: pbEntityMsg.lookup('priorityPreference'),
+  READING_LIST: pbEntityMsg.lookup('readingList'),
+  SEARCH_ENGINES: pbEntityMsg.lookup('searchEngine'),
+  SESSIONS: pbEntityMsg.lookup('session'),
+  SYNCED_NOTIFICATIONS: pbEntityMsg.lookup('syncedNotification'),
+  SYNCED_NOTIFICATION_APP_INFO: pbEntityMsg.lookup('syncedNotificationAppInfo'),
+  THEMES: pbEntityMsg.lookup('theme'),
+  TYPED_URLS: pbEntityMsg.lookup('typedUrl'),
+  EXTENSION_SETTINGS: pbEntityMsg.lookup('extensionSetting'),
+  FAVICON_IMAGES: pbEntityMsg.lookup('faviconImage'),
+  FAVICON_TRACKING: pbEntityMsg.lookup('faviconTracking'),
+  DEPRECATED_WIFI_CREDENTIALS: pbEntityMsg.lookup('wifiCredential'),
+  USER_EVENTS: pbEntityMsg.lookup('userEvent'),
+  MOUNTAIN_SHARES: pbEntityMsg.lookup('mountainShare'),
+  USER_CONSENTS: pbEntityMsg.lookup('userConsent'),
+  SEND_TAB_TO_SELF: pbEntityMsg.lookup('sendTabToSelf'),
   //PROXY_TABS는 sync.proto에 없음
 };
 function syncTypeToProtocolDataTypeId(syncType) { //키 값에 해당하는 실제 proto dataType Id. e.g. (BOOKMARKS) -> 32904
@@ -326,6 +326,7 @@ for (let i in ModelTypeInfoMap) {
   if (i > 0 && SpecificsFieldName.hasOwnProperty(getModelTypeNameFromModelType(ModelTypeInfoMap[i][0]))) {
     //console.log(ModelTypeInfoMap[i][0])
     kModelTypeInfoMap.get(ModelTypeInfoMap[i][0]).setSpecificsFieldName(SpecificsFieldName[getModelTypeNameFromModelType(ModelTypeInfoMap[i][0])]);
+    assert(kModelTypeInfoMap.get(ModelTypeInfoMap[i][0]).getSpecificsFieldName() == SpecificsFieldName[getModelTypeNameFromModelType(ModelTypeInfoMap[i][0])]);
   }
 };
 //console.log("kModelTypeInfoMap:", kModelTypeInfoMap.entries())
@@ -335,10 +336,10 @@ assert(43 == ModelType.MODEL_TYPE_COUNT, "When adding a new type, update kAlloca
 
 
 
-function addDefaultFieldValue(modelType, specifics) { // ModelType, sync_pb::EntitySpecifics
+function addDefaultFieldValue(modelType, pbEntitySpecifics) { // ModelType, sync_pb::EntitySpecifics
   assert(modelType <= ModelType.MODEL_TYPE_COUNT);
-  if (Object.entries(specifics).length > 0) {//이미 데이터가 존재
-    console.error('\x1b[35m%s\x1b[0m', 'Warning: It is already has a oneof specifics_variant:', specifics.toJSON());
+  if (Object.entries(pbEntitySpecifics).length > 0) {//이미 데이터가 존재
+    console.error('\x1b[35m%s\x1b[0m', 'Warning: It is already has a oneof specifics_variant:', pbEntitySpecifics.toJSON());
     // TODO: 필요시 여기서 리턴...
   }
   switch (modelType) {
@@ -350,7 +351,7 @@ function addDefaultFieldValue(modelType, specifics) { // ModelType, sync_pb::Ent
       break;
     default:
       //console.log('defaultFieldValue modelType:', getModelTypeNameFromModelType(kModelTypeInfoMap.get(modelType).modelType));
-      specifics[SpecificsFieldName[getModelTypeNameFromModelType(kModelTypeInfoMap.get(modelType).modelType)]] = SyncTypeName[getModelTypeNameFromModelType(modelType)];
+      pbEntitySpecifics[SpecificsFieldName[getModelTypeNameFromModelType(kModelTypeInfoMap.get(modelType).modelType)]] = SyncTypeName[getModelTypeNameFromModelType(modelType)];
       break;
     /*
   case ModelType.BOOKMARKS:
@@ -477,23 +478,23 @@ function addDefaultFieldValue(modelType, specifics) { // ModelType, sync_pb::Ent
   }
 };
 
-function getModelType(syncEntity) {  // sync_pb::SyncEntity
-  //assert(isRoot(syncEntity));
-  let specificsModelType = getModelTypeFromSpecifics(syncEntity.specifics);
+function getModelType(pbSyncEntity) {  // sync_pb::SyncEntity
+  //assert(isRoot(pbSyncEntity));
+  let specificsModelType = getModelTypeFromSpecifics(pbSyncEntity.specifics);
   if (specificsModelType != ModelType.UNSPECIFIED) {
     return specificsModelType;
   }
-  if (syncEntity.hasOwnProperty('serverDefinedUniqueTag') && syncEntity.serverDefinedUniqueTag != "" && isFolder(syncEntity)) {
+  if (pbSyncEntity.hasOwnProperty('serverDefinedUniqueTag') && pbSyncEntity.serverDefinedUniqueTag != "" && isFolder(pbSyncEntity)) {
     return ModelType.TOP_LEVEL_FOLDER;
   }
   console.error('\x1b[35m%s\x1b[0m', 'NOT REACHED: Unknown datatype in sync proto.');
   return ModelType.UNSPECIFIED;
 };
 
-function getModelTypeFromSpecifics(specifics) {  // sync_pb::EntitySpecifics
+function getModelTypeFromSpecifics(pbEntitySpecifics) {  // sync_pb::EntitySpecifics
   assert(43 == ModelType.MODEL_TYPE_COUNT, "When adding new protocol types, the following type lookup", "logic must be updated.");
   for (let i of Object.keys(SyncTypeName)) {
-    if (specifics.hasOwnProperty(SpecificsFieldName[i])) {
+    if (pbEntitySpecifics.hasOwnProperty(SpecificsFieldName[i])) {
       return ModelType[i];
     }
   }
@@ -690,11 +691,12 @@ function typeSupportsOrdering(modelType) {
 
 /* exports */
 exports.ModelType = ModelType;
+exports.modelTypeSet = modelTypeSet;
 exports.syncTypeToProtocolDataTypeId = syncTypeToProtocolDataTypeId;
 exports.getModelTypeNameFromModelType = getModelTypeNameFromModelType;
 exports.addDefaultFieldValue = addDefaultFieldValue;
-//exports.getModelTypeFromSpecifics = getModelTypeFromSpecifics
-exports.getModelType = getModelType;  // getModelTypeFromSpecifics은 getModelType을 통해서만 호출될 수 있도록 한다.
+exports.getModelTypeFromSpecifics = getModelTypeFromSpecifics
+exports.getModelType = getModelType; 
 exports.isUserSelectableType = isUserSelectableType;
 exports.isControlType = isControlType;
 exports.getUserSelectableTypeNameMap = getUserSelectableTypeNameMap;
@@ -728,3 +730,7 @@ exports.typeSupportsOrdering = typeSupportsOrdering;
 exports.getModelTypeName = () => { return ModelTypeName; };
 exports.getModelTypeInfoMap = () => { return kModelTypeInfoMap; };
 exports.getSyncTypeName = () => { return SyncTypeName; };
+
+
+
+exports.commitOnlyTypes = commitOnlyTypes;

@@ -6,8 +6,8 @@ let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
 let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process.js'));
 let pb = new sync_pb();
 let proto = pb.getSyncProto();  //sync.proto파일 Load
-let entityMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
-let syncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
+let pbEntitySpecificsMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
+let pbSyncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
 
 assert(44 == Object.entries(mt.ModelType).length, `ModelType length is ${Object.entries(mt.ModelType).length}`)
 // assert(Object.entries(mt.getModelTypeName()).length == Object.entries(mt.ModelType).length)  // 키-값 switch 관계. length == 44
@@ -20,15 +20,15 @@ assert(mt.getModelTypeInfoMap().get(41).getSpecificsFieldName() == 'nigori')
 assert(mt.getModelTypeNameFromModelType(mt.ModelType.BOOKMARKS) == 'BOOKMARKS')
 assert(mt.getModelTypeNameFromModelType(mt.ModelType.NIGORI) == 'NIGORI')
 
-let specifics = entityMsg.create();
-let syncEntity = syncEntityMsg.create();
-syncEntity.specifics = specifics;
-mt.addDefaultFieldValue(mt.ModelType.BOOKMARKS, specifics);
-// console.log('I has a changed spec:', mt.getModelType(syncEntity));
-assert(mt.getModelType(syncEntity) == mt.ModelType.BOOKMARKS);
-// mt.addDefaultFieldValue(mt.ModelType.NIGORI, specifics);    // TODO: oneof 속성인데 추가됨 주의!!!!
-// console.log('I has a spec:', mt.getModelType(syncEntity));  // 현재 oneof 옵션이 적용되지 않는 것 같다...?
-//assert(mt.getModelType(syncEntity) == mt.ModelType.NIGORI);
+let pbEntitySpecifics = pbEntitySpecificsMsg.create();
+let pbSyncEntity = pbSyncEntityMsg.create();
+pbSyncEntity.specifics = pbEntitySpecifics;
+mt.addDefaultFieldValue(mt.ModelType.BOOKMARKS, pbEntitySpecifics);
+// console.log('I has a changed spec:', mt.getModelType(pbSyncEntity));
+assert(mt.getModelType(pbSyncEntity) == mt.ModelType.BOOKMARKS);
+// mt.addDefaultFieldValue(mt.ModelType.NIGORI, pbEntitySpecifics);    // TODO: oneof 속성인데 추가됨 주의!!!!
+// console.log('I has a spec:', mt.getModelType(pbSyncEntity));  // 현재 oneof 옵션이 적용되지 않는 것 같다...?
+//assert(mt.getModelType(pbSyncEntity) == mt.ModelType.NIGORI);
 
 assert(mt.isUserSelectableType(mt.ModelType.BOOKMARKS) == true);
 assert(mt.isUserSelectableType(mt.ModelType.NIGORI) == false);
