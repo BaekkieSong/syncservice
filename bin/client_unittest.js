@@ -33,7 +33,7 @@ const options = {
   headers: {
 //    'Accept': 'application/octet-stream',
     'Accept-Encoding': 'application/octet-stream',//['gzip', 'deflate'],
-    'Content-Type': 'application/octet-stream',
+    'Content-Type': 'application/octet-stream',   // 'application/json',
     'Content-Encoding': 'application/octet-stream',
     
     //'Content-Type': 'application/protobuf',
@@ -79,8 +79,8 @@ let buf = requestMsg.encode(requestJSON).finish();
 console.log('old data encoding:', buf)
 console.log(typeof(buf));
 console.log('old length', buf.length)
-//req.end(String(requestJSON));
 req.end(buf);
+// req.end(JSON.stringify(requestJSON));
 
 console.log("Is Buffer?", Buffer.isBuffer(buf));
 //console.log(buf.toString())

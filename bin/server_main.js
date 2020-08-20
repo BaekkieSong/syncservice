@@ -4,7 +4,6 @@ let url = require('url');
 const asynced = require('async');
 const express = require('express');
 var bodyParser = require('body-parser')
-var rawParser = bodyParser.json();
 let zlib = require('zlib');
 const assert = require('assert');
 
@@ -17,6 +16,7 @@ let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_proce
 let pb = new sync_pb();
 let protojs = pb.getSyncProto();
 let sync = require(path.join(workspaceDir, 'src/sync/chromiumsync'));
+let messages = require(path.join(workspaceDir, 'google/protocol/sync_pb'))  //전역 proto 포함
 
 
 let clientCommandMsg = protojs.root.lookupType('ClientCommand');
@@ -66,7 +66,7 @@ app.post('/chrome-sync/dev/command/', (req, res) => {
   response.end('wow');
 });
 
-app.post('/', rawParser, (request, response) => {
+app.post('/', (request, response) => {
   console.log('Undefined POST:', request.body);
 
   if (isFaviconURL(request, response)) {
@@ -82,34 +82,23 @@ app.post('/', rawParser, (request, response) => {
   console.log('parsedData:', parsedData.query);
 
   /* parse body */
-  let body = '';
-  request.on('data', chunk => {
-    body += chunk;//.toString(); // convert Buffer to string
+  let body = [];
+  request.on('data', (chunk) => {
+    body.push(chunk);
   });
-  request.on('end', () => { // 얘 자체가 비동기 이벤트기 때문에 내부에서 처리되어야 함
-    console.log("request body:", body);
-    console.log('request length:', body.length);
+  request.on('end', () => {  // 얘 자체가 비동기 이벤트기 때문에 내부에서 처리되어야 함
+    let pbRequest = Buffer.concat(body); //make one large buffered
     if (request.get('content-encoding') == 'gzip') {
-      if (typeof (body) == 'string') {
-        body = Buffer.from(body);
-      }
-      body = uncompressRequestBody(body, request);  // request Content-Encoding: 'gzip'일 경우
-    }
-
-    let bodyJson = '';
-    if (request.get('content-type') == 'application/octet-stream') { //== 'plain/text') { //TODO: `== 'application/octet-stream') {`로 변경 필요
-      if (typeof (body) == 'string') {
-        body = Buffer.from(body);
-      }
-      let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-      let bodyData = csMessageMsg.decode(body);
-      //let bodyData = decodeRequestBody(body);  // request Content-Type: 'application/octet-stream'일 경우
-      bodyJson = bodyData.toJSON();
+      pbRequest = zlib.gunzipSync(pbRequest, [zlib.Z_DEFAULT_COMPRESSION]);
+      pbRequest = proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
+    } else if (request.get('content-type') == 'application/json') {
+      pbRequest = JSON.parse(pbRequest.toString());
+    } else if (request.get('content-type') == 'application/octet-stream') {
+      pbRequest = proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
     } else {
-      console.log('content-type:', request.get('content-type'));
-      bodyJson = JSON.parse(body);  // Content-Type: 'application/json' or 'plain/text'
+      console.error('\x1b[35m%s\x1b[0m', "Unexpected Content-Type Data.");
     }
-    console.log('\x1b[33m%s\x1b[0m', 'parse to json:', bodyJson);
+    // console.log("Result Body:", pbRequest)
 
     // processDB(function (db) {
     //   //console.log(db);
@@ -117,7 +106,8 @@ app.post('/', rawParser, (request, response) => {
     //   closeDB();
     // });
 
-    const result = handle(bodyJson, response, parsedData);
+    let pbResponse = new proto.sync_pb.ClientToServerResponse();
+    const result = handle(pbRequest, pbResponse, parsedData);
 
     //response.status(200).set('Content-Type', 'text/plain').send('body datadsafsdfsdf');
     //response.setHeader('Content-Type', 'text/plain');//'application/octet-stream');
@@ -126,29 +116,23 @@ app.post('/', rawParser, (request, response) => {
     //response.send('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
     //response.end('body');
 
-    let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-    let csMessageData = csMessageMsg.create(bodyJson);
-    //let pbMessage = convertToGoogleProtobufMessage(csMessageData);
-    const resbody = makeResponseBody();
+    let resbody = makeResponseBody(pbResponse);
+    resbody = zlib.gzipSync(resbody);
 
     response.end(resbody);//JSON.stringify(resbody));
+    /* 디코딩 Usage */
+    // let deserialize = zlib.gunzipSync(resbody);
+    // console.log(proto.sync_pb.ClientToServerResponse.deserializeBinary(deserialize))
 
     lastSetting();
     return 200;
   });
 });
 
-function handle(request, response, parsedData) {
+function handle(pbRequest, pbResponse, parsedData) {
   //console.log(request);
   const query = parsedData.query;
-
-  // TODO: csMessageMsg.MergeFromString(request); //request에서 protobuf를 읽어 csMessageMsg에 Set
-  // 일단 encoding된 버퍼 데이터 형식으로 온다고 가정함
-  let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-  const Contents = csMessageMsg.getEnum('Contents');
-  let csMessageData = csMessageMsg.create(request);
-  console.log('\x1b[33m%s\x1b[0m', 'created csMessage:', csMessageData);
-  const contents = csMessageData.messageContents;
+  const Contents = pbRequest.getMessageContents();
 
   /* wallet 전처리
   wallet은 internal대신 메인 서버에서 처리 
@@ -156,11 +140,11 @@ function handle(request, response, parsedData) {
   이를 방해하지 않기 위해 request에서 WalletProgressMarker 정보를 제거하여 internal로 전달. 
   response날리기전에 처리해서 다시 추가 */
   let walletMarker;
-  if (csMessageData && csMessageData.getUpdates && csMessageData.getUpdates.fromProgressMarker) {
-    for (let index in csMessageData.getUpdates.fromProgressMarker) {
-      if (csMessageData.getUpdates.fromProgressMarker[index].dataTypeId == sync.SyncTypeName.AUTOFILL_WALLET_DATA.id) {
-        walletMarker = csMessageData.getUpdates.fromProgressMarker[index];
-        csMessageData.getUpdates.fromProgressMarker.pop(index);
+  if (pbRequest && pbRequest.hasGetUpdates() && pbRequest.getGetUpdates().getFromProgressMarkerList().length != 0) {
+    for (let index in pbRequest.getGetUpdates().getFromProgressMarkerList()) {
+      if (pbRequest.getGetUpdates().getFromProgressMarkerList()[index].getDataTypeId() == sync.SyncTypeName.AUTOFILL_WALLET_DATA.id) {
+        walletMarker = pbRequest.getGetUpdates().getFromProgressMarkerList()[index];
+        pbRequest.getGetUpdates().getFromProgressMarkerList().splice(index, 1);
         console.log('\x1b[33m%s\x1b[0m', 'remove wallet marker:', walletMarker);
         break;
       }
@@ -169,60 +153,55 @@ function handle(request, response, parsedData) {
   }
   //let progressMarkerMsg = csMessageMsg.lookupType('')
 
-  const httpStatusCode = sync.internalServer.handleCommand(csMessageData, query);
+  const httpStatusCode = sync.internalServer.handleCommand(pbRequest, query);
   console.log('\x1b[33m%s\x1b[0m', 'Http Status Code:', httpStatusCode);
 
   /* wallet 후처리 
   request에 wallet정보를 다시 추가하여 처리 후, response에 결과값 반영 */
   if (walletMarker) {
-    csMessageData.getUpdates.fromProgressMarker.push(walletMarker);
+    pbRequest.getGetUpdates().addFromProgressMarkerList(walletMarker);
     console.log('\x1b[33m%s\x1b[0m', 'add wallet marker');
     if (httpStatusCode == 200) {
-      handleWalletRequest(csMessageData, walletMarker, response);
+      handleWalletRequest(pbRequest, walletMarker, pbResponse);
     }
   }
 
   if (httpStatusCode == 200) {
-    injectClientCommand(response);
+    injectClientCommand(pbResponse);
   }
+
   console.log('success');
   //response.writeHead(200, {"Content-Type":"text/plain; charset=utf-8"});  // 얘네는 실제론 process 내에서 처리되야 함
   // response.writeHead(200, {"Content-Type":"application/protobuf; charset=utf-8"});  // 얘네는 실제론 process 내에서 처리되야 함
   return 200;
 };
 
-function handleWalletRequest(req, walletMarker, response) {  // CToSMessage, DataTypeProgressMarker, raw_response
-  if (req.messageContents != Contents.GET_UPDATES) {
+function handleWalletRequest(pbRequest, walletMarker, pbResponse) {  // CToSMessage, DataTypeProgressMarker, raw_response
+  if (pbRequest.getMessageContents() != proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES) {
     return;
   };
-  let csResponseMsg = protojs.root.lookupType('sync_pb.ClientToServerResponse');
-  res = csResponseMsg.create(response);
-  populateWalletResults(walletEntities = [], walletMarker, res.getUpdates);
+  populateWalletResults(walletEntities = [], walletMarker, pbResponse.getGetUpdates());
   //response = res.toJSON();  // 이 코드 없어도 response에 값 적용됨.
 };
 
-function populateWalletResults(walletEntities, walletMarker, getUpdates) {  //vector<sync_pb.SyncEntity>, DataTypeProgressMarker, sync_pb.GetUpdatesResponse
-  verifyNoWalletDataProgressMarkerExists(getUpdates);
-  let marker = protojs.root.lookupType('DataTypeProgressMarker').create();
-  marker.dataTypeId = sync.SyncTypeName.AUTOFILL_WALLET_DATA.id;
-  getUpdates.newProgressMarker.push(marker);
-  console.log('getUpdates:', getUpdates);
+function populateWalletResults(walletEntities, walletMarker, pbGetUpdates) {  //vector<sync_pb.SyncEntity>, DataTypeProgressMarker, sync_pb.GetUpdatesResponse
+  verifyNoWalletDataProgressMarkerExists(pbGetUpdates);
+  let marker = new proto.sync_pb.DataTypeProgressMarker();
+  marker.setDataTypeId(sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
+  pbGetUpdates.addNewProgressMarker(marker);
+  console.log('getUpdates:', pbGetUpdates);
   // TODO: 실제 Entities에 대한 Wallet처리 로직 구현
 };
 
-function verifyNoWalletDataProgressMarkerExists(getUpdates) {
-  for (const marker of getUpdates.newProgressMarker) {
-    assert(marker.dataTypeId != sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
+function verifyNoWalletDataProgressMarkerExists(pbGetUpdates) {
+  for (const marker of getUpdates.getNewProgressMarker()) {
+    assert(marker.getDataTypeId() != sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
   }
 };
 
-function injectClientCommand(response) {
-  let csResponseMsg = protojs.root.lookupType('sync_pb.ClientToServerResponse');
-  const SyncEnums = csResponseMsg.lookup('SyncEnums');
-  const ErrorType = SyncEnums.getEnum('ErrorType');
-  res = csResponseMsg.create(response);
-  if (res.errorCode == ErrorType.SUCCESS) {  // 따로 처리 안해도 response 파라미터에 clientCommand값 들어감. 확인할 것...
-    res.clientCommand = clientCommand;
+function injectClientCommand(pbResponse) {
+  if (pbResponse.getErrorCode() == proto.sync_pb.SyncEnums.ErrorType.SUCCESS) {
+    pbResponse.setClientCommand(clientCommand);  // 따로 처리 안해도 response 파라미터에 clientCommand값 들어감. 확인할 것...
   }
 }
 
@@ -239,70 +218,10 @@ function getSyncedProtobufMessage() {
   return sync_msg;
 };
 
-/* google-protobuf */
-/*
-function convertToGoogleProtobufMessage(bodydata) {
-  let pbMessage = new messages.ClientToServerMessage();
-  pbMessage.setProtocolVersion(33);
-  //console.log('object body:', pbMessage.toObject())
-  //console.log('json:', bodydata.toJSON())
-  for (let key in bodydata.toJSON()) {
-    switch (key) {
-      case 'share': pbMessage.setShare(bodydata[key]);
-        break;
-      case 'protocolVersion': pbMessage.setProtocolVersion(bodydata[key]);
-        break;
-      case 'debugInfo':
-        let debugInfo = new messages.DebugInfo();
-        if (bodydata[key].hasOwnProperty('events')) {
-          for (let i of bodydata[key]['events']) {
-            let debugEventInfo = new messages.DebugEventInfo();
-            debugEventInfo.setSingletonEvent(bodydata[key].hasOwnProperty('events') && bodydata[key]['events'].hasOwnProperty('singletonEvent') ? bodydata[key]['events']['singletonEvent'] : undefined)
-            debugInfo.addEvents(debugEventInfo);
-          }
-        }
-        debugInfo.setCryptographerReady(bodydata[key].hasOwnProperty('cryptographerReady') ? bodydata[key]['cryptographerReady'] : undefined);
-        pbMessage.setDebugInfo(debugInfo);
-      default:
-        break;
-    }
-  }
-  console.log('storeBirthday:', bodydata['storeBirthday']);
-  pbMessage.setStoreBirthday(bodydata.hasOwnProperty('storeBirthday') ? bodydata['storeBirthday'] : undefined);
-  //console.log(pbMessage.toObject())
-  //console.log(JSON.stringify(csMessageMsg.create(pbMessage.toObject()).toJSON()));
-  if (pbMessage.hasShare()) {
-    console.log('share:', pbMessage.getShare());
-  } else {
-    console.log('no share:', pbMessage.getShare());
-  }
-  if (pbMessage.hasProtocolVersion()) {
-    console.log('version:', pbMessage.getProtocolVersion());
-  }
-  if (pbMessage.hasMessageContents()) {
-    console.log('messageContents:', pbMessage.getMessageContents());
-  }
-  if (pbMessage.hasGetUpdates()) {
-    console.log('getUpdates:', pbMessage.getGetUpdates());
-    if (pbMessage.getGetUpdates().hasFetchFolders()) {
-      console.log('fetchFolders:', pbMessage.getFetchFolders());
-    }
-  }
-  return pbMessage;
-}
-*/
-
-function makeResponseBody() {
-  /*
-  let pbResponse = new messages.ClientToServerResponse();
+function makeResponseBody(pbResponse) {
   pbResponse.setErrorCode(proto.sync_pb.SyncEnums.ErrorType.SUCCESS);
   pbResponse.setStoreBirthday(sync.internalServer.accountModel.getStoreBirthday());
-  let resbody = csResponseMsg.create(pbResponse.toObject());
-  */
-  let csResponseMsg = protojs.root.lookupType('sync_pb.ClientToServerResponse');
-  let csResponseData = csResponseMsg.create();
-  csResponseData.storeBirthday = sync.internalServer.accountModel.getStoreBirthday();
-  let resbody = csResponseMsg.encode(csResponseData).finish();
+  let resbody = pbResponse.serializeBinary();
   return resbody;
 }
 
@@ -331,59 +250,6 @@ function decodeRequestBody(body) {
   return bodyData;
   //response.status(200).set('Content-Type', 'text/plain').send('body datadsafsdfsdf');
 }
-
-/* gzip */
-function uncompressRequestBody(body, request) {
-  if (request.headers['content-encoding'] == 'gzip') {
-    console.log('start gunzip...')
-    console.log('type:', typeof (body))
-    let rawdata;
-    // zlib.inflate(body, (err, data) => {
-    //   console.log(err);
-    //   console.log('inflate');
-    //   console.log(data);
-    //   let bodydata = proto.sync_pb.ClientToServerMessage.deserializeBinary(data);
-    //   console.log("inflatedata:", bodydata);
-    // })
-    // zlib.inflateRaw(body, (err, data) => {
-    //   console.log(err);
-    //   console.log('inflateRaw');
-    //   console.log(data);
-    //   let bodydata = proto.sync_pb.ClientToServerMessage.deserializeBinary(data);
-    //   console.log("inflatedata:", bodydata);
-    // })
-    if (typeof (body) == 'string') {
-      console.log('\x1b[33m%s\x1b[0m', '\n\nMain Internal Test111111\n');
-      rawdata = Buffer.from(body);
-    } else {
-      rawdata = body;
-    }
-    let data = zlib.gunzipSync(rawdata, [zlib.Z_DEFAULT_COMPRESSION]);
-    console.log('body:', data);
-    let bodydata = proto.sync_pb.ClientToServerMessage.deserializeBinary(data);
-    // let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-    // let bodydata = csMessageMsg.decode(data);
-    console.log("bodyeeeddd:", bodydata);
-    return bodydata;
-
-    zlib.gunzip(rawdata, (err, data) => {
-      console.log(err);
-      console.log('unzipped')
-      console.log(data);
-      console.log(typeof (data));
-      if (typeof (data) == 'Buffer' || 'object') {
-        console.log('\x1b[33m%s\x1b[0m', '\n\nMain Internal Server Test11111\n');
-        console.log("body:", data);
-        let bodydata = proto.sync_pb.ClientToServerMessage.deserializeBinary(data);
-        // let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-        // let bodydata = csMessageMsg.decode(data);
-        console.log("bodyeeeddd:", bodydata);
-        body = bodydata;//csMessageMsg.encode(bodydata).finish();
-        //response.end(csMessageMsg.encode(body).finish());
-      }
-    });
-  };
-};
 
 /* DB */
 function old_processDB() {

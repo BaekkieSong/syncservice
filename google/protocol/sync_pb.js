@@ -6264,40 +6264,32 @@ proto.sync_pb.DataTypeProgressMarker.deserializeBinaryFromReader = function(msg,
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      console.log("start google-protobuf parse: DataTypeId()))))")
       var value = /** @type {number} */ (reader.readInt32());
       msg.setDataTypeId(value);
       break;
     case 2:
-      console.log("start google-protobuf parse: readBytes()))))")
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
-      console.log("value:::::",value);
       msg.setToken(value);
-    break;
+      break;
     case 3:
-      console.log("start google-protobuf parse: TimeStampTokenForMigration()))))")
       var value = /** @type {number} */ (reader.readInt64());
       msg.setTimestampTokenForMigration(value);
       break;
     case 4:
-      console.log("start google-protobuf parse: notificationHint String()))))")
       var value = /** @type {string} */ (reader.readString());
       msg.setNotificationHint(value);
       break;
     case 5:
-      console.log("start google-protobuf parse: Triggers Message()))))")
       var value = new proto.sync_pb.GetUpdateTriggers;
       reader.readMessage(value,proto.sync_pb.GetUpdateTriggers.deserializeBinaryFromReader);
       msg.setGetUpdateTriggers(value);
       break;
     case 6:
-      console.log("start google-protobuf parse: GcDirec Message()))))")
       var value = new proto.sync_pb.GarbageCollectionDirective;
       reader.readMessage(value,proto.sync_pb.GarbageCollectionDirective.deserializeBinaryFromReader);
       msg.setGcDirective(value);
       break;
     default:
-      console.log("start google-protobuf parse: Skip()))))")
       reader.skipField();
       break;
     }
