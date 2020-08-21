@@ -1,12 +1,7 @@
 const assert = require('assert');
-
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../..');
-let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process.js'));
-let pb = new sync_pb();
-let proto = pb.getSyncProto();  //sync.proto파일 Load
-let pbEntityMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
-let pbSyncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
+let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
 
 // 동기화 지원하는 하위 항목의 열거형.
 // 각 동기화 객체에는 불변 객체 타입을 가질 수 있고, 객체의 타입은 보유한 데이터의 타입에서 유추됨
@@ -92,11 +87,6 @@ const LAST_USER_MODEL_TYPE = ModelType.PROXY_TABS;
 const LAST_CONTROL_MODEL_TYPE = ModelType.EXPERIMENTS;
 const LAST_REAL_MODEL_TYPE = LAST_CONTROL_MODEL_TYPE;
 
-// const ModelTypeName = {};//new Map();
-// Object.entries(ModelType).map((it) => { ModelTypeName[it[1]] = it[0] });//ModelTypeName.set(it[1], it[0]);});
-// //console.log(ModelTypeName);
-// console.log("modelTypeName 41:", ModelTypeName[41])
-
 let modelTypeSet = {};
 let fullModelTypeSet = {};
 let modelTypeNameMap = new Map();
@@ -158,54 +148,6 @@ const SpecificsFieldName = {
   SEND_TAB_TO_SELF: 'sendTabToSelf',
 };
 
-const SyncTypeName = {    // == SYNC_TYPE_TO_DESCRIPTOR
-  APPS: pbEntityMsg.lookup('app'),
-  APP_LIST: pbEntityMsg.lookup('appList'),
-  APP_NOTIFICATIONS: pbEntityMsg.lookup('appNotification'),
-  APP_SETTINGS: pbEntityMsg.lookup('appSetting'),
-  ARC_PACKAGE: pbEntityMsg.lookup('arcPackage'),
-  DEPRECATED_ARTICLES: pbEntityMsg.lookup('article'),
-  AUTOFILL: pbEntityMsg.lookup('autofill'),
-  AUTOFILL_PROFILE: pbEntityMsg.lookup('autofillProfile'),
-  AUTOFILL_WALLET_DATA: pbEntityMsg.lookup('autofillWallet'),
-  AUTOFILL_WALLET_METADATA: pbEntityMsg.lookup('walletMetadata'),
-  BOOKMARKS: pbEntityMsg.lookup('bookmark'),
-  DEVICE_INFO: pbEntityMsg.lookup('deviceInfo'),
-  DICTIONARY: pbEntityMsg.lookup('dictionary'),
-  EXPERIMENTS: pbEntityMsg.lookup('experiments'),
-  EXTENSIONS: pbEntityMsg.lookup('extension'),
-  HISTORY_DELETE_DIRECTIVES: pbEntityMsg.lookup('historyDeleteDirective'),
-  SUPERVISED_USER_SETTINGS: pbEntityMsg.lookup('managedUserSetting'),
-  DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS: pbEntityMsg.lookup('managedUserSharedSetting'),
-  SUPERVISED_USER_WHITELISTS: pbEntityMsg.lookup('managedUserWhitelist'),
-  DEPRECATED_SUPERVISED_USERS: pbEntityMsg.lookup('managedUser'),
-  NIGORI: pbEntityMsg.lookup('nigori'),
-  PASSWORDS: pbEntityMsg.lookup('password'),
-  PREFERENCES: pbEntityMsg.lookup('preference'),
-  PRINTERS: pbEntityMsg.lookup('printer'),
-  PRIORITY_PREFERENCES: pbEntityMsg.lookup('priorityPreference'),
-  READING_LIST: pbEntityMsg.lookup('readingList'),
-  SEARCH_ENGINES: pbEntityMsg.lookup('searchEngine'),
-  SESSIONS: pbEntityMsg.lookup('session'),
-  SYNCED_NOTIFICATIONS: pbEntityMsg.lookup('syncedNotification'),
-  SYNCED_NOTIFICATION_APP_INFO: pbEntityMsg.lookup('syncedNotificationAppInfo'),
-  THEMES: pbEntityMsg.lookup('theme'),
-  TYPED_URLS: pbEntityMsg.lookup('typedUrl'),
-  EXTENSION_SETTINGS: pbEntityMsg.lookup('extensionSetting'),
-  FAVICON_IMAGES: pbEntityMsg.lookup('faviconImage'),
-  FAVICON_TRACKING: pbEntityMsg.lookup('faviconTracking'),
-  DEPRECATED_WIFI_CREDENTIALS: pbEntityMsg.lookup('wifiCredential'),
-  USER_EVENTS: pbEntityMsg.lookup('userEvent'),
-  MOUNTAIN_SHARES: pbEntityMsg.lookup('mountainShare'),
-  USER_CONSENTS: pbEntityMsg.lookup('userConsent'),
-  SEND_TAB_TO_SELF: pbEntityMsg.lookup('sendTabToSelf'),
-  //PROXY_TABS는 sync.proto에 없음
-};
-function syncTypeToProtocolDataTypeId(syncType) { //키 값에 해당하는 실제 proto dataType Id. e.g. (BOOKMARKS) -> 32904
-  /* SyncTypeName to DataType Id. */
-  return SyncTypeName[syncType].id;
-};
-
 class ModelTypeInfo {
   constructor(info) {
     this.modelType = info[0];
@@ -227,88 +169,88 @@ const ModelTypeInfoMap = [
   [ModelType.UNSPECIFIED, "", "", "Unspecified", -1, 0],
   [ModelType.TOP_LEVEL_FOLDER, "", "", "Top Level Folder", -1, 1],
   [ModelType.BOOKMARKS, "BOOKMARK", "bookmarks", "Bookmarks",
-  syncTypeToProtocolDataTypeId("BOOKMARKS"), 2],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.BOOKMARK, 2],//
   [ModelType.PREFERENCES, "PREFERENCE", "preferences", "Preferences",
-  syncTypeToProtocolDataTypeId("PREFERENCES"), 3],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.PREFERENCE, 3],
   [ModelType.PASSWORDS, "PASSWORD", "passwords", "Passwords",
-  syncTypeToProtocolDataTypeId("PASSWORDS"), 4],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.PASSWORD, 4],
   [ModelType.AUTOFILL_PROFILE, "AUTOFILL_PROFILE", "autofill_profiles", "Autofill Profiles",
-  syncTypeToProtocolDataTypeId("AUTOFILL_PROFILE"), 5],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.AUTOFILL_PROFILE, 5],
   [ModelType.AUTOFILL, "AUTOFILL", "autofill", "Autofill",
-  syncTypeToProtocolDataTypeId("AUTOFILL"), 6],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.AUTOFILL, 6],
   [ModelType.AUTOFILL_WALLET_DATA, "AUTOFILL_WALLET", "autofill_wallet", "Autofill Wallet",
-  syncTypeToProtocolDataTypeId("AUTOFILL_WALLET_DATA"), 34],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.AUTOFILL_WALLET, 34],
   [ModelType.AUTOFILL_WALLET_METADATA, "WALLET_METADATA", "autofill_wallet_metadata", "Autofill Wallet Metadata",
-  syncTypeToProtocolDataTypeId("AUTOFILL_WALLET_METADATA"), 35],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.WALLET_METADATA, 35],
   [ModelType.THEMES, "THEME", "themes", "Themes",
-  syncTypeToProtocolDataTypeId("THEMES"), 7],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.THEME, 7],
   [ModelType.TYPED_URLS, "TYPED_URL", "typed_urls", "Typed URLs",
-  syncTypeToProtocolDataTypeId("TYPED_URLS"), 8],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.TYPED_URL, 8],
   [ModelType.EXTENSIONS, "EXTENSION", "extensions", "Extensions",
-  syncTypeToProtocolDataTypeId("EXTENSIONS"), 9],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.EXTENSION, 9],
   [ModelType.SEARCH_ENGINES, "SEARCH_ENGINE", "search_engines", "Search Engines",
-  syncTypeToProtocolDataTypeId("SEARCH_ENGINES"), 10],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.SEARCH_ENGINE, 10],
   [ModelType.SESSIONS, "SESSION", "sessions", "Sessions",
-  syncTypeToProtocolDataTypeId("SESSIONS"), 11],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.SESSION, 11],
   [ModelType.APPS, "APP", "apps", "Apps",
-  syncTypeToProtocolDataTypeId("APPS"), 12],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.APP, 12],
   [ModelType.APP_SETTINGS, "APP_SETTING", "app_settings", "App settings",
-  syncTypeToProtocolDataTypeId("APP_SETTINGS"), 13],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.APP_SETTING, 13],
   [ModelType.EXTENSION_SETTINGS, "EXTENSION_SETTING", "extension_settings", "Extension settings",
-  syncTypeToProtocolDataTypeId("EXTENSION_SETTINGS"), 14],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.EXTENSION_SETTING, 14],
   [ModelType.APP_NOTIFICATIONS, "APP_NOTIFICATION", "app_notifications", "App Notifications",
-  syncTypeToProtocolDataTypeId("APP_NOTIFICATIONS"), 15],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.APP_NOTIFICATION, 15],
   [ModelType.HISTORY_DELETE_DIRECTIVES, "HISTORY_DELETE_DIRECTIVE", "history_delete_directives", "History Delete Directives",
-  syncTypeToProtocolDataTypeId("HISTORY_DELETE_DIRECTIVES"), 16],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.HISTORY_DELETE_DIRECTIVE, 16],
   [ModelType.SYNCED_NOTIFICATIONS, "SYNCED_NOTIFICATION", "synced_notifications", "Synced Notifications",
-  syncTypeToProtocolDataTypeId("SYNCED_NOTIFICATIONS"), 20],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.SYNCED_NOTIFICATION, 20],
   [ModelType.SYNCED_NOTIFICATION_APP_INFO, "SYNCED_NOTIFICATION_APP_INFO", "synced_notification_app_info", "Synced Notification App Info",
-  syncTypeToProtocolDataTypeId("SYNCED_NOTIFICATION_APP_INFO"), 31],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.SYNCED_NOTIFICATION_APP_INFO, 31],
   [ModelType.DICTIONARY, "DICTIONARY", "dictionary", "Dictionary",
-  syncTypeToProtocolDataTypeId("DICTIONARY"), 22],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.DICTIONARY, 22],
   [ModelType.FAVICON_IMAGES, "FAVICON_IMAGE", "favicon_images", "Favicon Images",
-  syncTypeToProtocolDataTypeId("FAVICON_IMAGES"), 23],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.FAVICON_IMAGE, 23],
   [ModelType.FAVICON_TRACKING, "FAVICON_TRACKING", "favicon_tracking", "Favicon Tracking",
-  syncTypeToProtocolDataTypeId("FAVICON_TRACKING"), 24],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.FAVICON_TRACKING, 24],
   [ModelType.DEVICE_INFO, "DEVICE_INFO", "device_info", "Device Info",
-  syncTypeToProtocolDataTypeId("DEVICE_INFO"), 18],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.DEVICE_INFO, 18],
   [ModelType.PRIORITY_PREFERENCES, "PRIORITY_PREFERENCE", "priority_preferences", "Priority Preferences",
-  syncTypeToProtocolDataTypeId("PRIORITY_PREFERENCES"), 21],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.PRIORITY_PREFERENCE, 21],
   [ModelType.SUPERVISED_USER_SETTINGS, "MANAGED_USER_SETTING", "managed_user_settings", "Managed User Settings",
-  syncTypeToProtocolDataTypeId("SUPERVISED_USER_SETTINGS"), 26],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.MANAGED_USER_SETTING, 26],
   [ModelType.DEPRECATED_SUPERVISED_USERS, "MANAGED_USER", "managed_users", "Managed Users",
-  syncTypeToProtocolDataTypeId("DEPRECATED_SUPERVISED_USERS"), 27],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.MANAGED_USER, 27],
   [ModelType.DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS, "MANAGED_USER_SHARED_SETTING", "managed_user_shared_settings", "Managed User Shared Settings",
-  syncTypeToProtocolDataTypeId("DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS"), 30],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.MANAGED_USER_SHARED_SETTING, 30],
   [ModelType.DEPRECATED_ARTICLES, "ARTICLE", "deprecated_articles", "Deprecated Articles",
-  syncTypeToProtocolDataTypeId("DEPRECATED_ARTICLES"), 28],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.ARTICLE, 28],
   [ModelType.APP_LIST, "APP_LIST", "app_list", "App List",
-  syncTypeToProtocolDataTypeId("APP_LIST"), 29],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.APP_LIST, 29],
   [ModelType.DEPRECATED_WIFI_CREDENTIALS, "WIFI_CREDENTIAL", "wifi_credentials", "WiFi Credentials",
-  syncTypeToProtocolDataTypeId("DEPRECATED_WIFI_CREDENTIALS"), 32],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.WIFI_CREDENTIAL, 32],
   [ModelType.SUPERVISED_USER_WHITELISTS, "MANAGED_USER_WHITELIST", "managed_user_whitelists", "Managed User Whitelists",
-  syncTypeToProtocolDataTypeId("SUPERVISED_USER_WHITELISTS"), 33],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.MANAGED_USER_WHITELIST, 33],
   [ModelType.ARC_PACKAGE, "ARC_PACKAGE", "arc_package", "Arc Package",
-  syncTypeToProtocolDataTypeId("ARC_PACKAGE"), 36],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.ARC_PACKAGE, 36],
   [ModelType.PRINTERS, "PRINTER", "printers", "Printers",
-  syncTypeToProtocolDataTypeId("PRINTERS"), 37],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.PRINTER, 37],
   [ModelType.READING_LIST, "READING_LIST", "reading_list", "Reading List",
-  syncTypeToProtocolDataTypeId("READING_LIST"), 38],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.READING_LIST, 38],
   [ModelType.USER_EVENTS, "USER_EVENT", "user_events", "User Events",
-  syncTypeToProtocolDataTypeId("USER_EVENTS"), 39],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.USER_EVENT, 39],
   [ModelType.MOUNTAIN_SHARES, "MOUNTAIN_SHARE", "mountain_shares", "Mountain Shares",
-  syncTypeToProtocolDataTypeId("MOUNTAIN_SHARES"), 40],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.MOUNTAIN_SHARE, 40],
   [ModelType.USER_CONSENTS, "USER_CONSENT", "user_consent", "User Consents",
-  syncTypeToProtocolDataTypeId("USER_CONSENTS"), 41],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.USER_CONSENT, 41],
   [ModelType.SEND_TAB_TO_SELF, "SEND_TAB_TO_SELF", "send_tab_to_self", "Send Tab To Self",
-  syncTypeToProtocolDataTypeId("SEND_TAB_TO_SELF"), 42],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.SEND_TAB_TO_SELF, 42],
   // ---- Proxy types ----
   [ModelType.PROXY_TABS, "", "", "Tabs", -1, 25],
   // ---- Control Types ----
   [ModelType.NIGORI, "NIGORI", "nigori", "Encryption Keys",
-  syncTypeToProtocolDataTypeId("NIGORI"), 17],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.NIGORI, 17],
   [ModelType.EXPERIMENTS, "EXPERIMENTS", "experiments", "Experiments",
-  syncTypeToProtocolDataTypeId("EXPERIMENTS"), 19],
+  proto.sync_pb.EntitySpecifics.SpecificsVariantCase.EXPERIMENTS, 19],
 ];
 
 let typesValues = Object.keys(ModelType).reduce(
@@ -334,14 +276,8 @@ assert(kModelTypeInfoMap.size == ModelType.MODEL_TYPE_COUNT, "kModelTypeInfoMap 
 assert(43 == ModelType.MODEL_TYPE_COUNT, "When adding a new type, update enum SyncModelTypes in enums.xml", "and suffix SyncModelType in histograms.xml.");
 assert(43 == ModelType.MODEL_TYPE_COUNT, "When adding a new type, update kAllocatorDumpNameWhitelist in ", "base/trace_event/memory_infra_background_whitelist.cc.");
 
-
-
 function addDefaultFieldValue(modelType, pbEntitySpecifics) { // ModelType, sync_pb::EntitySpecifics
   assert(modelType <= ModelType.MODEL_TYPE_COUNT);
-  if (Object.entries(pbEntitySpecifics).length > 0) {//이미 데이터가 존재
-    console.error('\x1b[35m%s\x1b[0m', 'Warning: It is already has a oneof specifics_variant:', pbEntitySpecifics.toJSON());
-    // TODO: 필요시 여기서 리턴...
-  }
   switch (modelType) {
     case ModelType.UNSPECIFIED:
     case ModelType.TOP_LEVEL_FOLDER:
@@ -349,142 +285,136 @@ function addDefaultFieldValue(modelType, pbEntitySpecifics) { // ModelType, sync
     case ModelType.MODEL_TYPE_COUNT:
       console.error('\x1b[35m%s\x1b[0m', 'Warning: No default field value for ', getModelTypeNameFromModelType(modelType));
       break;
-    default:
-      //console.log('defaultFieldValue modelType:', getModelTypeNameFromModelType(kModelTypeInfoMap.get(modelType).modelType));
-      pbEntitySpecifics[SpecificsFieldName[getModelTypeNameFromModelType(kModelTypeInfoMap.get(modelType).modelType)]] = SyncTypeName[getModelTypeNameFromModelType(modelType)];
+    case ModelType.BOOKMARKS:
+      pbEntitySpecifics.setBookmark(new proto.sync_pb.BookmarkSpecifics());
       break;
-    /*
-  case ModelType.BOOKMARKS:
-    specifics.bookmark = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.PREFERENCES:
-    specifics.preference = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.PASSWORDS:
-    specifics.password = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.AUTOFILL_PROFILE:
-    specifics.autofillProfile = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.AUTOFILL:
-    specifics.autofill = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.AUTOFILL_WALLET_DATA:
-    specifics.autofillWallet = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.AUTOFILL_WALLET_METADATA:
-    specifics.walletMetadata = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.THEMES:
-    specifics.theme = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.TYPED_URLS:
-    specifics.typedUrl = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.EXTENSIONS:
-    specifics.extension = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SEARCH_ENGINES:
-    specifics.searchEngine = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SESSIONS:
-    specifics.session = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.APPS:
-    specifics.app = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.APP_SETTINGS:
-    specifics.appSetting = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.EXTENSION_SETTINGS:
-    specifics.extensionSetting = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.APP_NOTIFICATIONS:
-    specifics.appNotification = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.HISTORY_DELETE_DIRECTIVES:
-    specifics.historyDeleteDirective = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SYNCED_NOTIFICATIONS:
-    specifics.syncedNotification = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SYNCED_NOTIFICATION_APP_INFO:
-    specifics.syncedNotificationAppInfo = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DICTIONARY:
-    specifics.dictionary = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.FAVICON_IMAGES:
-    specifics.faviconImage = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.FAVICON_TRACKING:
-    specifics.faviconTracking = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DEVICE_INFO:
-    specifics.deviceInfo = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.PRIORITY_PREFERENCES:
-    specifics.priorityPreference = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SUPERVISED_USER_SETTINGS:
-    specifics.menagedUserSetting = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DEPRECATED_SUPERVISED_USERS:
-    specifics.managedUser = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS:
-    specifics.managedUserSharedSetting = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DEPRECATED_ARTICLES:
-    specifics.article = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.APP_LIST:
-    specifics.appList = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.DEPRECATED_WIFI_CREDENTIALS:
-    specifics.wifiCredential = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SUPERVISED_USER_WHITELISTS:
-    specifics.managedUserWhitelist = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.ARC_PACKAGE:
-    specifics.arcPackage = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.PRINTERS:
-    specifics.printer = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.READING_LIST:
-    specifics.readingList = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.USER_EVENTS:
-    specifics.userEvent = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.MOUNTAIN_SHARES:
-    specifics.mountainShare = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.USER_CONSENTS:
-    specifics.userConsent = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.SEND_TAB_TO_SELF:
-    specifics.sendTabToSelf = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.NIGORI:
-    specifics['nigori'] = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-  case ModelType.EXPERIMENTS:
-    specifics.experiments = SyncTypeName[getModelTypeNameFromModelType(modelType)];
-    break;
-    */
+    case ModelType.PREFERENCES:
+      pbEntitySpecifics.setPreference(new proto.sync_pb.PreferenceSpecifics());
+      break;
+    case ModelType.PASSWORDS:
+      pbEntitySpecifics.setPassword(new proto.sync_pb.PasswordSpecifics());
+      break;
+    case ModelType.AUTOFILL_PROFILE:
+      pbEntitySpecifics.setAutofillProfile(new proto.sync_pb.AutofillProfileSpecifics());
+      break;
+    case ModelType.AUTOFILL:
+      pbEntitySpecifics.setAutofill(new proto.sync_pb.AutofillSpecifics());
+      break;
+    case ModelType.AUTOFILL_WALLET_DATA:
+      pbEntitySpecifics.setAutofillWallet(new proto.sync_pb.AutofillWalletSpecifics());
+      break;
+    case ModelType.AUTOFILL_WALLET_METADATA:
+      pbEntitySpecifics.setWalletMetadata(new proto.sync_pb.WalletMetadataSpecifics());
+      break;
+    case ModelType.THEMES:
+      pbEntitySpecifics.setTheme(new proto.sync_pb.ThemeSpecifics());
+      break;
+    case ModelType.TYPED_URLS:
+      pbEntitySpecifics.setTypedUrl(new proto.sync_pb.TypedUrlSpecifics());
+      break;
+    case ModelType.EXTENSIONS:
+      pbEntitySpecifics.setExtension$(new proto.sync_pb.ExtensionSpecifics());
+      break;
+    case ModelType.SEARCH_ENGINES:
+      pbEntitySpecifics.setSearchEngine(new proto.sync_pb.SearchEngineSpecifics());
+      break;
+    case ModelType.SESSIONS:
+      pbEntitySpecifics.setSession(new proto.sync_pb.SessionSpecifics());
+      break;
+    case ModelType.APPS:
+      pbEntitySpecifics.setApp(new proto.sync_pb.AppSpecifics());
+      break;
+    case ModelType.APP_SETTINGS:
+      pbEntitySpecifics.setAppSetting(new proto.sync_pb.AppSettingSpecifics());
+      break;
+    case ModelType.EXTENSION_SETTINGS:
+      pbEntitySpecifics.setExtensionSetting(new proto.sync_pb.ExtensionSpecifics());
+      break;
+    case ModelType.APP_NOTIFICATIONS:
+      pbEntitySpecifics.setAppNotification(new proto.sync_pb.AppNotification());
+      break;
+    case ModelType.HISTORY_DELETE_DIRECTIVES:
+      pbEntitySpecifics.setHistoryDeleteDirective(new proto.sync_pb.HistoryDeleteDirectiveSpecifics());
+      break;
+    case ModelType.SYNCED_NOTIFICATIONS:
+      pbEntitySpecifics.setSyncedNotification(new proto.sync_pb.SyncedNotificationSpecifics());
+      break;
+    case ModelType.SYNCED_NOTIFICATION_APP_INFO:
+      pbEntitySpecifics.setSyncedNotificationAppInfo(new proto.sync_pb.SyncedNotificationAppInfoSpecifics());
+      break;
+    case ModelType.DICTIONARY:
+      pbEntitySpecifics.setDictionary(new proto.sync_pb.DictionarySpecifics());
+      break;
+    case ModelType.FAVICON_IMAGES:
+      pbEntitySpecifics.setFaviconImage(new proto.sync_pb.FaviconImageSpecifics());
+      break;
+    case ModelType.FAVICON_TRACKING:
+      pbEntitySpecifics.setFaviconTracking(new proto.sync_pb.FaviconTrackingSpecifics());
+      break;
+    case ModelType.DEVICE_INFO:
+      pbEntitySpecifics.setDeviceInfo(new proto.sync_pb.DeviceInfoSpecifics());
+      break;
+    case ModelType.PRIORITY_PREFERENCES:
+      pbEntitySpecifics.setPriorityPreference(new proto.sync_pb.PriorityPreferenceSpecifics());
+      break;
+    case ModelType.SUPERVISED_USER_SETTINGS:
+      pbEntitySpecifics.setManagedUserSetting(new proto.sync_pb.ManagedUserSettingSpecifics());
+      break;
+    case ModelType.DEPRECATED_SUPERVISED_USERS:
+      pbEntitySpecifics.setManagedUser(new proto.sync_pb.ManagedUserSpecifics());
+      break;
+    case ModelType.DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS:
+      pbEntitySpecifics.setManagedUserSharedSetting(new proto.sync_pb.ManagedUserSharedSettingSpecifics());
+      break;
+    case ModelType.DEPRECATED_ARTICLES:
+      pbEntitySpecifics.setArticle(new proto.sync_pb.ArticleSpecifics());
+      break;
+    case ModelType.APP_LIST:
+      pbEntitySpecifics.setAppList(new proto.sync_pb.AppListSpecifics());
+      break;
+    case ModelType.DEPRECATED_WIFI_CREDENTIALS:
+      pbEntitySpecifics.setWifiCredential(new proto.sync_pb.WifiCredentialSpecifics());
+      break;
+    case ModelType.SUPERVISED_USER_WHITELISTS:
+      pbEntitySpecifics.setManagedUserWhitelist(new proto.sync_pb.ManagedUserWhitelistSpecifics());
+      break;
+    case ModelType.ARC_PACKAGE:
+      pbEntitySpecifics.setArcPackage(new proto.sync_pb.ArcPackageSpecifics());
+      break;
+    case ModelType.PRINTERS:
+      pbEntitySpecifics.setPrinter(new proto.sync_pb.PrinterSpecifics());
+      break;
+    case ModelType.READING_LIST:
+      pbEntitySpecifics.setReadingList(new proto.sync_pb.ReadingListSpecifics());
+      break;
+    case ModelType.USER_EVENTS:
+      pbEntitySpecifics.setUserEvent(new proto.sync_pb.UserEventSpecifics());
+      break;
+    case ModelType.MOUNTAIN_SHARES:
+      pbEntitySpecifics.setMountainShare(new proto.sync_pb.MountainShareSpecifics());
+      break;
+    case ModelType.USER_CONSENTS:
+      pbEntitySpecifics.setUserConsent(new proto.sync_pb.UserConsentSpecifics());
+      break;
+    case ModelType.SEND_TAB_TO_SELF:
+      pbEntitySpecifics.setSendTabToSelf(new proto.sync_pb.SendTabToSelfSpecifics());
+      break;
+    case ModelType.NIGORI:
+      pbEntitySpecifics.setNigori(new proto.sync_pb.NigoriSpecifics());
+      break;
+    case ModelType.EXPERIMENTS:
+      pbEntitySpecifics.setExperiments(new proto.sync_pb.ExperimentsSpecifics());
+      break;
   }
 };
 
 function getModelType(pbSyncEntity) {  // sync_pb::SyncEntity
   //assert(isRoot(pbSyncEntity));
-  let specificsModelType = getModelTypeFromSpecifics(pbSyncEntity.specifics);
+  let specificsModelType = getModelTypeFromSpecifics(pbSyncEntity.getSpecifics());
   if (specificsModelType != ModelType.UNSPECIFIED) {
     return specificsModelType;
   }
-  if (pbSyncEntity.hasOwnProperty('serverDefinedUniqueTag') && pbSyncEntity.serverDefinedUniqueTag != "" && isFolder(pbSyncEntity)) {
+  if (pbSyncEntity.getServerDefinedUniqueTag() != undefined && isFolder(pbSyncEntity)) {
     return ModelType.TOP_LEVEL_FOLDER;
   }
   console.error('\x1b[35m%s\x1b[0m', 'NOT REACHED: Unknown datatype in sync proto.');
@@ -493,11 +423,86 @@ function getModelType(pbSyncEntity) {  // sync_pb::SyncEntity
 
 function getModelTypeFromSpecifics(pbEntitySpecifics) {  // sync_pb::EntitySpecifics
   assert(43 == ModelType.MODEL_TYPE_COUNT, "When adding new protocol types, the following type lookup", "logic must be updated.");
-  for (let i of Object.keys(SyncTypeName)) {
-    if (pbEntitySpecifics.hasOwnProperty(SpecificsFieldName[i])) {
-      return ModelType[i];
-    }
-  }
+  if (pbEntitySpecifics.hasBookmark())
+    return ModelType.BOOKMARKS;
+  if (pbEntitySpecifics.hasPreference())
+    return ModelType.PREFERENCES;
+  if (pbEntitySpecifics.hasPassword())
+    return ModelType.PASSWORDS;
+  if (pbEntitySpecifics.hasAutofillProfile())
+    return ModelType.AutofillProfile;
+  if (pbEntitySpecifics.hasAutofill())
+    return ModelType.AUTOFILL;
+  if (pbEntitySpecifics.hasAutofillWallet())
+    return ModelType.AUTOFILL_WALLET_DATA;
+  if (pbEntitySpecifics.hasWalletMetadata())
+    return ModelType.AUTOFILL_WALLET_METADATA;
+  if (pbEntitySpecifics.hasTheme())
+    return ModelType.THEMES;
+  if (pbEntitySpecifics.hasTypedUrl())
+    return ModelType.TYPED_URLS;
+  if (pbEntitySpecifics.hasExtension$())  // TODO: Generate 버그인 것 같음. 확인 필요
+    return ModelType.EXTENSIONS;
+  if (pbEntitySpecifics.hasSearchEngine())
+    return ModelType.SEARCH_ENGINES;
+  if (pbEntitySpecifics.hasSession())
+    return ModelType.SESSIONS;
+  if (pbEntitySpecifics.hasApp())
+    return ModelType.APPS;
+  if (pbEntitySpecifics.hasAppSetting())
+    return ModelType.APP_SETTINGS;
+  if (pbEntitySpecifics.hasExtensionSetting())
+    return ModelType.EXTENSION_SETTINGS;
+  if (pbEntitySpecifics.hasAppNotification())
+    return ModelType.APP_NOTIFICATIONS;
+  if (pbEntitySpecifics.hasHistoryDeleteDirective())
+    return ModelType.HISTORY_DELETE_DIRECTIVES;
+  if (pbEntitySpecifics.hasSyncedNotification())
+    return ModelType.SYNCED_NOTIFICATIONS;
+  if (pbEntitySpecifics.hasSyncedNotificationAppInfo())
+    return ModelType.SYNCED_NOTIFICATION_APP_INFO;
+  if (pbEntitySpecifics.hasDictionary())
+    return ModelType.DICTIONARY;
+  if (pbEntitySpecifics.hasFaviconImage())
+    return ModelType.FAVICON_IMAGES;
+  if (pbEntitySpecifics.hasFaviconTracking())
+    return ModelType.FAVICON_TRACKING;
+  if (pbEntitySpecifics.hasDeviceInfo())
+    return ModelType.DEVICE_INFO;
+  if (pbEntitySpecifics.hasPriorityPreference())
+    return ModelType.PRIORITY_PREFERENCES;
+  if (pbEntitySpecifics.hasManagedUserSetting())
+    return ModelType.SUPERVISED_USER_SETTINGS;
+  if (pbEntitySpecifics.hasManagedUser())
+    return ModelType.DEPRECATED_SUPERVISED_USERS;
+  if (pbEntitySpecifics.hasManagedUserSharedSetting())
+    return ModelType.DEPRECATED_SUPERVISED_USER_SHARED_SETTINGS;;
+  if (pbEntitySpecifics.hasArticle())
+    return ModelType.DEPRECATED_ARTICLES;
+  if (pbEntitySpecifics.hasAppList())
+    return ModelType.APP_LIST;
+  if (pbEntitySpecifics.hasWifiCredential())
+    return ModelType.DEPRECATED_WIFI_CREDENTIALS;
+  if (pbEntitySpecifics.hasManagedUserWhitelist())
+    return ModelType.SUPERVISED_USER_WHITELISTS;
+  if (pbEntitySpecifics.hasArcPackage())
+    return ModelType.ARC_PACKAGE
+  if (pbEntitySpecifics.hasPrinter())
+    return ModelType.PRINTERS;
+  if (pbEntitySpecifics.hasReadingList())
+    return ModelType.READING_LIST;
+  if (pbEntitySpecifics.hasUserEvent())
+    return ModelType.USER_EVENTS;
+  if (pbEntitySpecifics.hasMountainShare())
+    return ModelType.MOUNTAIN_SHARES;
+  if (pbEntitySpecifics.hasUserConsent())
+    return ModelType.USER_CONSENTS;
+  if (pbEntitySpecifics.hasNigori())
+    return ModelType.NIGORI;
+  if (pbEntitySpecifics.hasExperiments())
+    return ModelType.EXPERIMENTS;
+  if (pbEntitySpecifics.hasSendTabToSelf())
+    return ModelType.SEND_TAB_TO_SELF;
   return ModelType.UNSPECIFIED;
 };
 
@@ -692,11 +697,11 @@ function typeSupportsOrdering(modelType) {
 /* exports */
 exports.ModelType = ModelType;
 exports.modelTypeSet = modelTypeSet;
-exports.syncTypeToProtocolDataTypeId = syncTypeToProtocolDataTypeId;
+//exports.syncTypeToProtocolDataTypeId = syncTypeToProtocolDataTypeId;
 exports.getModelTypeNameFromModelType = getModelTypeNameFromModelType;
 exports.addDefaultFieldValue = addDefaultFieldValue;
 exports.getModelTypeFromSpecifics = getModelTypeFromSpecifics
-exports.getModelType = getModelType; 
+exports.getModelType = getModelType;
 exports.isUserSelectableType = isUserSelectableType;
 exports.isControlType = isControlType;
 exports.getUserSelectableTypeNameMap = getUserSelectableTypeNameMap;
@@ -729,8 +734,5 @@ exports.typeSupportsOrdering = typeSupportsOrdering;
 /* Only for tests */
 exports.getModelTypeName = () => { return ModelTypeName; };
 exports.getModelTypeInfoMap = () => { return kModelTypeInfoMap; };
-exports.getSyncTypeName = () => { return SyncTypeName; };
-
-
 
 exports.commitOnlyTypes = commitOnlyTypes;

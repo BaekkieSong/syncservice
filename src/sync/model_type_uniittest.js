@@ -2,33 +2,37 @@ const path = require('path');
 const { assert } = require('console');
 const workspaceDir = path.join(__dirname, '../..');
 let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-
-let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process.js'));
-let pb = new sync_pb();
-let proto = pb.getSyncProto();  //sync.proto파일 Load
-let pbEntitySpecificsMsg = proto.root.lookupType('sync_pb.EntitySpecifics');
-let pbSyncEntityMsg = proto.root.lookupType('sync_pb.SyncEntity');
+let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
 
 assert(44 == Object.entries(mt.ModelType).length, `ModelType length is ${Object.entries(mt.ModelType).length}`)
 // assert(Object.entries(mt.getModelTypeName()).length == Object.entries(mt.ModelType).length)  // 키-값 switch 관계. length == 44
 assert(43 == mt.ModelType.MODEL_TYPE_COUNT, "kModelTypeInfoMap should have MODEL_TYPE_COUNT elements");
 
-assert(mt.syncTypeToProtocolDataTypeId('BOOKMARKS') == 32904);
 // console.log('infomap:', mt.getModelTypeInfoMap().get(41))
 assert(mt.getModelTypeInfoMap().get(41).modelType == mt.ModelType.NIGORI);
 assert(mt.getModelTypeInfoMap().get(41).getSpecificsFieldName() == 'nigori')
 assert(mt.getModelTypeNameFromModelType(mt.ModelType.BOOKMARKS) == 'BOOKMARKS')
 assert(mt.getModelTypeNameFromModelType(mt.ModelType.NIGORI) == 'NIGORI')
 
-let pbEntitySpecifics = pbEntitySpecificsMsg.create();
-let pbSyncEntity = pbSyncEntityMsg.create();
-pbSyncEntity.specifics = pbEntitySpecifics;
-mt.addDefaultFieldValue(mt.ModelType.BOOKMARKS, pbEntitySpecifics);
-// console.log('I has a changed spec:', mt.getModelType(pbSyncEntity));
+/* Protobuf Issue Check */
+let pbEntitySpecifics = new proto.sync_pb.EntitySpecifics();
+pbEntitySpecifics.setExtension$(new proto.sync_pb.ExtensionSpecifics()) // TODO: Protobuf Static Generate Issue: '$' is added.
+assert(pbEntitySpecifics.hasExtension$());
+pbEntitySpecifics.clearExtension$();
+assert(pbEntitySpecifics.getExtension$() == undefined);
+
+let pbSyncEntity = new proto.sync_pb.SyncEntity();
+pbSyncEntity.setSpecifics(pbEntitySpecifics);
+// TODO: 절대 아래줄처럼 사용X! Local Func 벗어날 때 설정값이 지워지는 문제 있음
+// new proto.sync_pb.EntitySpecifics(pbEntitySpecifics))
+assert(pbSyncEntity.hasSpecifics())
+pbEntitySpecifics.setExtension$(new proto.sync_pb.ExtensionSpecifics())
+assert(pbSyncEntity.getSpecifics().hasExtension$())
+mt.addDefaultFieldValue(mt.ModelType.BOOKMARKS, pbSyncEntity.getSpecifics());
 assert(mt.getModelType(pbSyncEntity) == mt.ModelType.BOOKMARKS);
-// mt.addDefaultFieldValue(mt.ModelType.NIGORI, pbEntitySpecifics);    // TODO: oneof 속성인데 추가됨 주의!!!!
-// console.log('I has a spec:', mt.getModelType(pbSyncEntity));  // 현재 oneof 옵션이 적용되지 않는 것 같다...?
-//assert(mt.getModelType(pbSyncEntity) == mt.ModelType.NIGORI);
+mt.addDefaultFieldValue(mt.ModelType.NIGORI, pbSyncEntity.getSpecifics());
+assert(mt.getModelType(pbSyncEntity) != mt.ModelType.BOOKMARKS);
+assert(mt.getModelType(pbSyncEntity) == mt.ModelType.NIGORI);
 
 assert(mt.isUserSelectableType(mt.ModelType.BOOKMARKS) == true);
 assert(mt.isUserSelectableType(mt.ModelType.NIGORI) == false);
@@ -58,7 +62,7 @@ assert('google_chrome_nigori' == mt.modelTypeToRootTag(mt.getModelTypeInfoMap().
 assert('google_chrome_experiments' == mt.modelTypeToRootTag(mt.getModelTypeInfoMap().get(42).modelType))
 //assert('Invalid' == mt.modelTypeToRootTag(mt.getModelTypeInfoMap().get(1).modelType))
 
-assert('bookmarks' == mt.getModelTypeRootTag(mt.ModelType.BOOKMARKS),`BOOKMARKS's RootTag is 'bookmarks'`);
+assert('bookmarks' == mt.getModelTypeRootTag(mt.ModelType.BOOKMARKS), `BOOKMARKS's RootTag is 'bookmarks'`);
 assert('themes' == mt.getModelTypeRootTag(mt.ModelType.THEMES), `THEMES's RootTag is 'themes'`);
 
 assert('BOOKMARK' == mt.getRealModelTypeToNotificationType(mt.ModelType.BOOKMARKS), 'Check: this type is real model type');
