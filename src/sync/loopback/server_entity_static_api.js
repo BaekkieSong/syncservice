@@ -2,14 +2,20 @@ const assert = require('assert');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../../..');
 let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(workspaceDir, 'google/protocol/loopback_server_pb'));
-const bookmark = require(path.join(workspaceDir, 'src/sync/loopback/persistent_bookmark_entity.js'));
-const permanent = require(path.join(workspaceDir, 'src/sync/loopback/persistent_permanent_entity.js'));
-const tombstone = require(path.join(workspaceDir, 'src/sync/loopback/persistent_tombstone_entity.js'));
-const uniqueClient = require(path.join(workspaceDir, 'src/sync/loopback/persistent_unique_client_entity.js'));
+let pbMessages = require(path.join(
+  workspaceDir, 'google/protocol/loopback_server_pb'));
+const bookmark = require(path.join(
+  workspaceDir, 'src/sync/loopback/persistent_bookmark_entity.js'));
+const permanent = require(path.join(
+  workspaceDir, 'src/sync/loopback/persistent_permanent_entity.js'));
+const tombstone = require(path.join(
+  workspaceDir, 'src/sync/loopback/persistent_tombstone_entity.js'));
+const uniqueClient = require(path.join(
+  workspaceDir, 'src/sync/loopback/persistent_unique_client_entity.js'));
 
 /* static */
-function createEntityFromProto(pbLoopbackServerEntity) { //sync_pb::LoopbackServerEntity
+//sync_pb::LoopbackServerEntity
+function createEntityFromProto(pbLoopbackServerEntity) {
   switch (pbLoopbackServerEntity.getType()) {
     case proto.sync_pb.LoopbackServerEntity.Type.TOMBSTONE:
       return tombstone.createFromEntity(pbLoopbackServerEntity.getEntity());
@@ -25,12 +31,10 @@ function createEntityFromProto(pbLoopbackServerEntity) { //sync_pb::LoopbackServ
     case proto.sync_pb.LoopbackServerEntity.Type.UNIQUE:
       return uniqueClient.createFromEntity(pbLoopbackServerEntity.getEntity());
     case proto.sync_pb.LoopbackServerEntity.Type.UNKNOWN:
-      // assert(false, "Unknown type encountered");//NOT REACHED
+      console.error('\x1b[35m%s\x1b[0m', "Not Reached: Unknown type");
       return "";
   }
   return "";
-  // return LoopbackServerEntity
 }
-//let en = new LoopbackServerEntity();
 
 exports.createEntityFromProto = createEntityFromProto;

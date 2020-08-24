@@ -10,13 +10,15 @@ const assert = require('assert');
 const path = require('path');
 const { response } = require('express');
 const workspaceDir = path.join(__dirname, '..');
-//var messages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));  // google-protobuf
+/* 전역 proto 포함 */
+let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
 let mydb = require(path.join(workspaceDir, 'src/storage/api'));
-let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process'));  // protobufjs
+
+let sync_pb = require(path.join(
+  workspaceDir, 'src/google/protobufjs/proto_process'));  // protobufjs
 let pb = new sync_pb();
 let protojs = pb.getSyncProto();
 let sync = require(path.join(workspaceDir, 'src/sync/chromiumsync'));
-let messages = require(path.join(workspaceDir, 'google/protocol/sync_pb'))  //전역 proto 포함
 
 
 let clientCommandMsg = protojs.root.lookupType('ClientCommand');
@@ -37,7 +39,7 @@ function isFaviconURL(request, response) {
   return false;
 };
 
-function parseRequestURL(request) { // parse ?[key=value]&[key2=value2]
+function parseRequestURL(request) {  // parse ?[key=value]&[key2=value2]
   let parsedData = url.parse(request.url, true);
   //  console.log(parsedData.auth); //null
   //  console.log(parsedData.host); //null
@@ -60,7 +62,8 @@ app.get('/', (request, response) => {
   response.end('aaaa');
 })
 
-//"https://clients4.google.com/chrome-sync/dev/command/?client=Chromium&client_id=1w%2B/uHkBePHPIbTXHTW/Mg%3D%3D"
+//"https://clients4.google.com/chrome-sync/dev/command/
+//?client=Chromium&client_id=1w%2B/uHkBePHPIbTXHTW/Mg%3D%3D"
 app.post('/chrome-sync/dev/command/', (req, res) => {
   console.log('wow......')
   response.end('wow');
@@ -83,18 +86,21 @@ app.post('/', (request, response) => {
 
   /* parse body */
   let body = [];
+  // .on API가 async이벤트이므로 필요한 작업은 내부에서 처리되야 함
   request.on('data', (chunk) => {
     body.push(chunk);
   });
-  request.on('end', () => {  // 얘 자체가 비동기 이벤트기 때문에 내부에서 처리되어야 함
+  request.on('end', () => {
     let pbRequest = Buffer.concat(body); //make one large buffered
     if (request.get('content-encoding') == 'gzip') {
       pbRequest = zlib.gunzipSync(pbRequest, [zlib.Z_DEFAULT_COMPRESSION]);
-      pbRequest = proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
+      pbRequest =
+        proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
     } else if (request.get('content-type') == 'application/json') {
       pbRequest = JSON.parse(pbRequest.toString());
     } else if (request.get('content-type') == 'application/octet-stream') {
-      pbRequest = proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
+      pbRequest =
+        proto.sync_pb.ClientToServerMessage.deserializeBinary(pbRequest);
     } else {
       console.error('\x1b[35m%s\x1b[0m', "Unexpected Content-Type Data.");
     }
@@ -137,13 +143,17 @@ function handle(pbRequest, pbResponse, parsedData) {
   /* wallet 전처리
   wallet은 internal대신 메인 서버에서 처리 
   internal은 progress tokens 구성에 대한 처리
-  이를 방해하지 않기 위해 request에서 WalletProgressMarker 정보를 제거하여 internal로 전달. 
+  이를 방해하지 않기 위해 request에서 WalletProgressMarker 정보를 제거하여
+  internal로 전달.
   response날리기전에 처리해서 다시 추가 */
   let walletMarker;
-  if (pbRequest && pbRequest.hasGetUpdates() && pbRequest.getGetUpdates().getFromProgressMarkerList().length != 0) {
+  if (pbRequest && pbRequest.hasGetUpdates() &&
+    pbRequest.getGetUpdates().getFromProgressMarkerList().length != 0) {
     for (let index in pbRequest.getGetUpdates().getFromProgressMarkerList()) {
-      if (pbRequest.getGetUpdates().getFromProgressMarkerList()[index].getDataTypeId() == sync.SyncTypeName.AUTOFILL_WALLET_DATA.id) {
-        walletMarker = pbRequest.getGetUpdates().getFromProgressMarkerList()[index];
+      if (pbRequest.getGetUpdates().getFromProgressMarkerList()[index]
+        .getDataTypeId() == sync.SyncTypeName.AUTOFILL_WALLET_DATA.id) {
+        walletMarker =
+          pbRequest.getGetUpdates().getFromProgressMarkerList()[index];
         pbRequest.getGetUpdates().getFromProgressMarkerList().splice(index, 1);
         console.log('\x1b[33m%s\x1b[0m', 'remove wallet marker:', walletMarker);
         break;
@@ -176,15 +186,19 @@ function handle(pbRequest, pbResponse, parsedData) {
   return 200;
 };
 
-function handleWalletRequest(pbRequest, walletMarker, pbResponse) {  // CToSMessage, DataTypeProgressMarker, raw_response
-  if (pbRequest.getMessageContents() != proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES) {
+// input type: CToSMessage, DataTypeProgressMarker, raw_response
+function handleWalletRequest(pbRequest, walletMarker, pbResponse) {
+  if (pbRequest.getMessageContents() !=
+    proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES) {
     return;
   };
-  populateWalletResults(walletEntities = [], walletMarker, pbResponse.getGetUpdates());
+  populateWalletResults(
+    walletEntities = [], walletMarker, pbResponse.getGetUpdates());
   //response = res.toJSON();  // 이 코드 없어도 response에 값 적용됨.
 };
 
-function populateWalletResults(walletEntities, walletMarker, pbGetUpdates) {  //vector<sync_pb.SyncEntity>, DataTypeProgressMarker, sync_pb.GetUpdatesResponse
+// input type: vector<sync_pb.SyncEntity>, marker, sync_pb.GetUpdatesResponse
+function populateWalletResults(walletEntities, walletMarker, pbGetUpdates) {
   verifyNoWalletDataProgressMarkerExists(pbGetUpdates);
   let marker = new proto.sync_pb.DataTypeProgressMarker();
   marker.setDataTypeId(sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
@@ -201,7 +215,8 @@ function verifyNoWalletDataProgressMarkerExists(pbGetUpdates) {
 
 function injectClientCommand(pbResponse) {
   if (pbResponse.getErrorCode() == proto.sync_pb.SyncEnums.ErrorType.SUCCESS) {
-    pbResponse.setClientCommand(clientCommand);  // 따로 처리 안해도 response 파라미터에 clientCommand값 들어감. 확인할 것...
+    // 따로 처리 안해도 response 파라미터에 clientCommand값 들어가는지 확인할 것...
+    pbResponse.setClientCommand(clientCommand);
   }
 }
 
@@ -220,7 +235,8 @@ function getSyncedProtobufMessage() {
 
 function makeResponseBody(pbResponse) {
   pbResponse.setErrorCode(proto.sync_pb.SyncEnums.ErrorType.SUCCESS);
-  pbResponse.setStoreBirthday(sync.internalServer.accountModel.getStoreBirthday());
+  pbResponse.setStoreBirthday(
+    sync.internalServer.accountModel.getStoreBirthday());
   let resbody = pbResponse.serializeBinary();
   return resbody;
 }
@@ -236,7 +252,6 @@ function decodeRequestBody(body) {
   for (i = 0; i < body.length; i++) {
     b[i] = body[i];
   }
-  //body = [10,5,53,53,53,53,53,24,2,42,13,50,11,8,1,18,7,182,137,30,158,246,165,185];
   console.log('arraybody:', b);
   console.log('arraybodylength:', b.length)
   console.log("body:", b);
