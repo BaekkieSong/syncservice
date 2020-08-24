@@ -6,7 +6,8 @@ let zlib = require('zlib');
 
 const path = require('path');
 const workspaceDir = path.join(__dirname, '..');
-let sync_pb = require(path.join(workspaceDir, 'src/google/protobufjs/proto_process'));
+let sync_pb = require(
+  path.join(workspaceDir, 'src/google/protobufjs/proto_process'));
 let pb = new sync_pb();
 let protojs = pb.getSyncProto();
 
@@ -16,7 +17,7 @@ let requestJSON = {
   aa: '2222',
   share: "111111",
   messageContents: 2,
-  storeBirthday: "d73d1631b1802438df3b0346cdbd8ba9704f5f12",//sync.internalServer.accountModel.getStoreBirthday(),
+  storeBirthday: "d73d1631b1802438df3b0346cdbd8ba9704f5f12",
   getUpdates: {
     fromProgressMarker: [{ dataTypeId: 1 }]
   }
@@ -31,11 +32,11 @@ const options = {
   path: '/?a=3%20&b=path%2fone%2ftwo',  // == /?a=3 &b=path/one/two
   method: 'POST',
   headers: {
-//    'Accept': 'application/octet-stream',
+    //    'Accept': 'application/octet-stream',
     'Accept-Encoding': 'application/octet-stream',//['gzip', 'deflate'],
     'Content-Type': 'application/octet-stream',   // 'application/json',
     'Content-Encoding': 'application/octet-stream',
-    
+
     //'Content-Type': 'application/protobuf',
     //'Content-Length': Buffer.byteLength(requestMsg.encode(requestJSON).finish())
   },
@@ -77,7 +78,7 @@ req.on('error', (e) => {
 
 let buf = requestMsg.encode(requestJSON).finish();
 console.log('old data encoding:', buf)
-console.log(typeof(buf));
+console.log(typeof (buf));
 console.log('old length', buf.length)
 req.end(buf);
 // req.end(JSON.stringify(requestJSON));
@@ -127,7 +128,7 @@ zlib.gzip(buf, (err, buffer) => {
   //   console.log(buffer);
   //   console.log(requestMsg.decode(buffer));
   // })
-//  req.end(buffer);
+  //  req.end(buffer);
 });
 //req.end(buf);//buf.toString());
 //req.end(String(requestJSON));
