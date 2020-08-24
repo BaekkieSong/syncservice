@@ -60,8 +60,8 @@ class LoopbackServerEntity {
   serializeAsLoopbackServerEntity(pbLoopbackServerEntity) {
     pbLoopbackServerEntity.setType(this.getLoopbackServerEntityType());
     pbLoopbackServerEntity.setModelType(this.modelType);
-    pbLoopbackServerEntity.setEntity(new proto.sync_pb.Entity());
-    this.serializeAsProto(pbLoopbackServerEntity.entity); //entity->mutable_entity()
+    pbLoopbackServerEntity.setEntity(new proto.sync_pb.SyncEntity());
+    this.serializeAsProto(pbLoopbackServerEntity.getEntity());
   }
 
   // protected
