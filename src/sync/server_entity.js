@@ -10,7 +10,7 @@ class LoopbackServerEntity {
   constructor(id, modelType, version, name) {
     this.id = id;               //entity's ID
     this.modelType = modelType; //entity's mt.ModelType
-    this.version = version;     //entity's version
+    this.version = + new Date();//version;     //entity's version
     this.name = name;           //entity's name
   }
 

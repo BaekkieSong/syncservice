@@ -5,6 +5,7 @@ let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
 const se = require(path.join(workspaceDir, "src/sync/server_entity.js"));
 let pbMessages = require(path.join(
   workspaceDir, 'google/protocol/loopback_server_pb'));
+const { v4: uuidv4 } = require('uuid');
 
 /* local namespace */
 function isBookmark(pbClientEntity) {  // sync_pb::SyncEntity
@@ -33,7 +34,7 @@ class PersistentBookmarkEntity extends se.LoopbackServerEntity {
     this.folder = folder;
     this.parentId = parentId;
     this.creationTime = creationTime;
-    this.lastModifiedTime = lastModifiedTime;
+    this.lastModifiedTime = + new Date();/* lastModifiedTime */
     this.setSpecifics(pbEntitySpecifics);
   }
 
@@ -82,7 +83,8 @@ function createNew(pbClientEntity, parentId, clientGuid) {
   if (!isBookmark(pbClientEntity)) {
     return undefined;
   };
-  const id = se.createId(mt.ModelType.BOOKMARKS,/*TODO: base::GenerateGUID()*/);
+  // const id = se.createId(mt.ModelType.BOOKMARKS,/*TODO: base::GenerateGUID()*/);
+  const id = se.createId(mt.ModelType.BOOKMARKS, uuidv4());
   const originatorCacheGuid = clientGuid;
   const originatorClientItemId = pbClientEntity.getIdString();
   return new PersistentBookmarkEntity(
