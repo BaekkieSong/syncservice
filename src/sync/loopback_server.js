@@ -1,9 +1,8 @@
 const assert = require('assert');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../..');
-const mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(
-  workspaceDir, 'google/protocol/loopback_server_pb'));
+const mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
 const persistentBookmark = require(path.join(
   workspaceDir, 'src/sync/loopback/persistent_bookmark_entity.js'));
 const persistentPermanent = require(path.join(

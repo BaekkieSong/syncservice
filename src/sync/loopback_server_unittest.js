@@ -1,10 +1,9 @@
 const assert = require('assert');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../..');
-const mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
+const mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
 let sync = require(path.join(workspaceDir, 'src/sync/loopback_server.js'));
-let pbMessages = require(path.join(
-  workspaceDir, 'google/protocol/loopback_server_pb'));
+require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
 
 // for (const entityId of sync.loopbackServer.entities.keys()) {
 //   console.log(entityId);

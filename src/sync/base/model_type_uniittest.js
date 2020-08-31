@@ -1,8 +1,8 @@
 const path = require('path');
 const { assert } = require('console');
-const workspaceDir = path.join(__dirname, '../..');
-let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
+const workspaceDir = path.join(__dirname, '../../..');
+let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+require(path.join(workspaceDir, 'src/google/protocol/sync_pb'));
 
 assert(44 == Object.entries(mt.ModelType).length,
   `ModelType length is ${Object.entries(mt.ModelType).length}`);

@@ -11,8 +11,8 @@ const path = require('path');
 const { response } = require('express');
 const workspaceDir = path.join(__dirname, '..');
 /* 전역 proto 포함 */
-let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
+let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+require(path.join(workspaceDir, 'src/google/protocol/sync_pb'));
 let mydb = require(path.join(workspaceDir, 'src/storage/api'));
 let sync = require(path.join(workspaceDir, 'src/sync/loopback_server.js'));
 

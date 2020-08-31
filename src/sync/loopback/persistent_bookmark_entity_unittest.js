@@ -1,12 +1,12 @@
 const { assert } = require('console');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../../..');
-let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-const se = require(path.join(workspaceDir, 'src/sync/server_entity.js'));
+let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+const se =
+  require(path.join(workspaceDir, 'src/sync/loopback/server_entity.js'));
 const util = require(path.join(
   workspaceDir, 'src/sync/loopback/server_entity_static_api.js'));
-let pbMessages = require(path.join(
-  workspaceDir, 'google/protocol/loopback_server_pb'));
+require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
 
 let pbSyncEntity = new proto.sync_pb.SyncEntity();
 pbSyncEntity.setIdString('aaa');

@@ -1,10 +1,9 @@
 //Loopback Server Entity.h
 const assert = require('assert');
 const path = require('path');
-const workspaceDir = path.join(__dirname, '../..');
-let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(
-  workspaceDir, 'google/protocol/loopback_server_pb'));
+const workspaceDir = path.join(__dirname, '../../..');
+let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
 
 class LoopbackServerEntity {
   constructor(id, modelType, version, name) {

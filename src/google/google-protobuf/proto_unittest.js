@@ -1,7 +1,7 @@
 const { assert } = require('console');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../../..');
-var messages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
+var messages = require(path.join(workspaceDir, 'src/google/protocol/sync_pb'));
 
 let requestJSON = {
   invalidatorClientId: 'user@gmail.com',

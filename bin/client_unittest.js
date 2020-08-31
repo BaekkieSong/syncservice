@@ -7,7 +7,7 @@ let zlib = require('zlib');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '..');
 let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
+require(path.join(workspaceDir, 'src/google/protocol/sync_pb'));
 
 let pbMessage = new proto.sync_pb.ClientToServerMessage();
 pbMessage.setInvalidatorClientId('user@gmail.com');

@@ -1,7 +1,7 @@
 const assert = require('assert');
 const path = require('path');
-const workspaceDir = path.join(__dirname, '../..');
-let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
+const workspaceDir = path.join(__dirname, '../../..');
+require(path.join(workspaceDir, 'src/google/protocol/sync_pb'));
 
 /* 동기화 지원하는 하위 항목의 열거형.
 각 동기화 객체에는 불변 객체 타입을 가질 수 있고,

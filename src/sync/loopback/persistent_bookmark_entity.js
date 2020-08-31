@@ -1,10 +1,10 @@
 const assert = require('assert');
 const path = require('path');
 const workspaceDir = path.join(__dirname, '../../..');
-let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
-const se = require(path.join(workspaceDir, "src/sync/server_entity.js"));
-let pbMessages = require(path.join(
-  workspaceDir, 'google/protocol/loopback_server_pb'));
+let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
+const se =
+  require(path.join(workspaceDir, "src/sync/loopback/server_entity.js"));
+require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
 const { v4: uuidv4 } = require('uuid');
 
 /* local namespace */
