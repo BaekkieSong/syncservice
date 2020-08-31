@@ -6,24 +6,33 @@ let zlib = require('zlib');
 
 const path = require('path');
 const workspaceDir = path.join(__dirname, '..');
-let sync_pb = require(
-  path.join(workspaceDir, 'src/google/protobufjs/proto_process'));
-let pb = new sync_pb();
-let protojs = pb.getSyncProto();
+let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
+let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
 
-// Write data to request body
-let requestJSON = {
-  invalidatorClientId: 'user@gmail.com',
-  aa: '2222',
-  share: "111111",
-  messageContents: 2,
-  storeBirthday: "d73d1631b1802438df3b0346cdbd8ba9704f5f12",
-  getUpdates: {
-    fromProgressMarker: [{ dataTypeId: 1 }]
-  }
-};
-let requestMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-let request = requestMsg.create(requestJSON);
+let pbMessage = new proto.sync_pb.ClientToServerMessage();
+pbMessage.setInvalidatorClientId('user@gmail.com');
+pbMessage.setShare('111111');
+pbMessage.setMessageContents(
+  proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES);
+pbMessage.setStoreBirthday('d73d1631b1802438df3b0346cdbd8ba9704f5f12');
+pbMessage.setGetUpdates(new proto.sync_pb.GetUpdatesMessage());
+pbMessage.getGetUpdates().setCreateMobileBookmarksFolder(true);
+
+let marker = new proto.sync_pb.DataTypeProgressMarker();
+marker.setDataTypeId(mt.getSpecificsFieldNumberFromModelType(
+  mt.ModelType.BOOKMARKS));
+marker.setToken(Buffer.from('77777'));
+pbMessage.getGetUpdates().addFromProgressMarker(marker);
+
+let marker2 = new proto.sync_pb.DataTypeProgressMarker();
+marker2.setDataTypeId(mt.getSpecificsFieldNumberFromModelType(
+  mt.ModelType.PREFERENCES));
+marker2.setToken(Buffer.from('88888'));
+pbMessage.getGetUpdates().addFromProgressMarker(marker2);
+// console.log(pbMessage.getGetUpdates().getFromProgressMarkerList())
+
+pbMessage = pbMessage.serializeBinary();
+pbMessage = zlib.gzipSync(pbMessage);
 
 // const options = new URL('http://127.0.0.1:1337');
 const options = {
@@ -32,38 +41,28 @@ const options = {
   path: '/?a=3%20&b=path%2fone%2ftwo',  // == /?a=3 &b=path/one/two
   method: 'POST',
   headers: {
-    //    'Accept': 'application/octet-stream',
+    'Accept': 'application/octet-stream',
     'Accept-Encoding': 'application/octet-stream',//['gzip', 'deflate'],
     'Content-Type': 'application/octet-stream',   // 'application/json',
-    'Content-Encoding': 'application/octet-stream',
-
-    //'Content-Type': 'application/protobuf',
-    //'Content-Length': Buffer.byteLength(requestMsg.encode(requestJSON).finish())
+    'Content-Encoding': 'gzip', //'application/octet-stream',
   },
-  //gzip: true,
 }
 
-const req = http.request(options, (res) => {  //res는 콜백인데... IncomingMessage네....
-  // try {
-  //   validateHeaderValue('content-type', undefined); //안되네 슈밤;;;
-  // } catch (err) {
-  //   console.error(err.message);
-  // }
-  //console.log(res);
-  // console.log(`STATUS: ${res.statusCode}`);
-  // console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-
-  //res.setEncoding('utf8');
-  let body = '';
-  res.on('data', (chunk) => {
-    body += chunk;
+//res는 콜백인데... IncomingMessage임...
+const req = http.request(options, (response) => {
+  let body = [];
+  // .on API가 async이벤트이므로 필요한 작업은 내부에서 처리되야 함
+  response.on('data', (chunk) => {
+    body.push(chunk);
   });
-  res.on('end', () => {
-    console.log("Response: ", body);
-    console.log('Response length:', body.length);
-    console.log(Buffer.from(body, 'binary'));
-    console.log(Buffer.from(body, 'binary').length);
-    console.log('No more data in response.');
+  response.on('end', () => {
+    console.log(`\x1b[33m%s\x1b[0m`, "Response header:\n", response.headers);
+    // console.log(response.headers['content-encoding']);  // == gzip
+    let pbResponse = Buffer.concat(body); //make one large buffered
+    pbResponse = zlib.gunzipSync(pbResponse, [zlib.Z_DEFAULT_COMPRESSION]);
+    pbResponse =
+      proto.sync_pb.ClientToServerResponse.deserializeBinary(pbResponse);
+    console.log(`\x1b[33m%s\x1b[0m`, "Response body:\n", pbResponse.toObject());
   });
 });
 
@@ -71,65 +70,5 @@ req.on('error', (e) => {
   console.error(`problem with request: ${e.message}`);
 });
 
-// console.log(requestMsg.encode(requestJSON).finish());
-// console.log(requestMsg.decode(requestMsg.encode(requestJSON).finish()));
-// console.log(requestJSON);
-//req.write();  //얘는 서버에서 어케 보는거지...?
-
-let buf = requestMsg.encode(requestJSON).finish();
-console.log('old data encoding:', buf)
-console.log(typeof (buf));
-console.log('old length', buf.length)
-req.end(buf);
-// req.end(JSON.stringify(requestJSON));
-
-console.log("Is Buffer?", Buffer.isBuffer(buf));
-//console.log(buf.toString())
-
-/*
-var messages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
-var message = new proto.sync_pb.ClientToServerMessage();
-message.setShare('55555');
-message.setMessageContents(proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES);
-message.getStoreBirthday("d73d1631b1802438df3b0346cdbd8ba9704f5f12");
-var updates = new messages.GetUpdatesMessage();
-var marker = new messages.DataTypeProgressMarker();
-marker.setDataTypeId(1);
-marker.setToken('token value');
-updates.addFromProgressMarker(marker);
-message.setGetUpdates(updates);
-
-let data = message.serializeBinary(); //Uint8Array (== object 타입([]리스트 형식)) 
-//console.log(data);  // == object
-console.log('new data encoding to string:', data.toString()); // 리스트값 나열
-console.log(Buffer.from(data)); //각 리스트 값이 16진법으로 변경됨
-console.log(typeof(data));  // == object
-console.log('length:', data.byteLength)
-//req.end(Buffer.from(data)); // 
-//req.end(new Buffer(data, 'binary'));
-console.log('Proto Message:', message.toObject());
-req.end(JSON.stringify(message.toObject()));
-*/
-
-zlib.gzip(buf, (err, buffer) => {
-  console.log('gzipdata:', buffer);
-  console.log('gziplength:', buffer.length);
-  zlib.gunzip(buffer, (err, buf) => {
-    console.log('gunzipdata:', buf);
-    console.log('gunzipdatalength:', buf.length);
-    //let db = proto.sync_pb.ClientToServerMessage.deserializeBinary(buf);
-    //console.log(db);
-  })
-  let data = Buffer.from(buffer);
-  console.log('gzipnew buffer', data);
-  console.log('gziplength2', data.length);
-  //req.end(data)
-  // zlib.gunzip(buffer, (err, buffer) => {
-  //   console.log(buffer);
-  //   console.log(requestMsg.decode(buffer));
-  // })
-  //  req.end(buffer);
-});
-//req.end(buf);//buf.toString());
-//req.end(String(requestJSON));
-// req.end(Buffer.from(requestMsg.encode(requestJSON).finish()));//requestMsg.encode(requestJSON).finish()));
+/* For Google-Protobuf Test */
+req.end(pbMessage);

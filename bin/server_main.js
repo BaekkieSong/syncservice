@@ -11,18 +11,12 @@ const path = require('path');
 const { response } = require('express');
 const workspaceDir = path.join(__dirname, '..');
 /* 전역 proto 포함 */
+let mt = require(path.join(workspaceDir, 'src/sync/model_type.js'));
 let pbMessages = require(path.join(workspaceDir, 'google/protocol/sync_pb'));
 let mydb = require(path.join(workspaceDir, 'src/storage/api'));
+let sync = require(path.join(workspaceDir, 'src/sync/loopback_server.js'));
 
-let sync_pb = require(path.join(
-  workspaceDir, 'src/google/protobufjs/proto_process'));  // protobufjs
-let pb = new sync_pb();
-let protojs = pb.getSyncProto();
-let sync = require(path.join(workspaceDir, 'src/sync/chromiumsync'));
-
-
-let clientCommandMsg = protojs.root.lookupType('ClientCommand');
-let clientCommand = clientCommandMsg.create();
+let pbClientCommand = new proto.sync_pb.ClientCommand();
 
 const app = express();
 const port = process.env.PORT || 1337;
@@ -113,6 +107,11 @@ app.post('/', (request, response) => {
     // });
 
     let pbResponse = new proto.sync_pb.ClientToServerResponse();
+    /* input type:
+      sync_pb::ClientToServerMessage,
+      sync_pb::ClientToServerResponse,
+      Json
+    */
     const result = handle(pbRequest, pbResponse, parsedData);
 
     //response.status(200).set('Content-Type', 'text/plain').send('body datadsafsdfsdf');
@@ -125,10 +124,13 @@ app.post('/', (request, response) => {
     let resbody = makeResponseBody(pbResponse);
     resbody = zlib.gzipSync(resbody);
 
+    response.setHeader('Content-Encoding', 'gzip');
+    response.writeHead(200);
     response.end(resbody);//JSON.stringify(resbody));
     /* 디코딩 Usage */
     // let deserialize = zlib.gunzipSync(resbody);
-    // console.log(proto.sync_pb.ClientToServerResponse.deserializeBinary(deserialize))
+    // deserialize =
+    //   proto.sync_pb.ClientToServerResponse.deserializeBinary(deserialize);
 
     lastSetting();
     return 200;
@@ -150,8 +152,9 @@ function handle(pbRequest, pbResponse, parsedData) {
   if (pbRequest && pbRequest.hasGetUpdates() &&
     pbRequest.getGetUpdates().getFromProgressMarkerList().length != 0) {
     for (let index in pbRequest.getGetUpdates().getFromProgressMarkerList()) {
-      if (pbRequest.getGetUpdates().getFromProgressMarkerList()[index]
-        .getDataTypeId() == sync.SyncTypeName.AUTOFILL_WALLET_DATA.id) {
+      if (mt.getModelTypeFromSpecificsFieldNumber(
+        pbRequest.getGetUpdates().getFromProgressMarkerList()[index]
+          .getDataTypeId()) == mt.ModelType.AUTOFILL_WALLET_DATA) {
         walletMarker =
           pbRequest.getGetUpdates().getFromProgressMarkerList()[index];
         pbRequest.getGetUpdates().getFromProgressMarkerList().splice(index, 1);
@@ -161,12 +164,12 @@ function handle(pbRequest, pbResponse, parsedData) {
     }
     console.log('\x1b[33m%s\x1b[0m', 'Can`t find wallet marker:', walletMarker);
   }
-  //let progressMarkerMsg = csMessageMsg.lookupType('')
 
-  const httpStatusCode = sync.internalServer.handleCommand(pbRequest, query);
+  const httpStatusCode = sync.loopbackServer.handleCommand(
+    pbRequest, pbResponse, query);
   console.log('\x1b[33m%s\x1b[0m', 'Http Status Code:', httpStatusCode);
 
-  /* wallet 후처리 
+  /* wallet 후처리
   request에 wallet정보를 다시 추가하여 처리 후, response에 결과값 반영 */
   if (walletMarker) {
     pbRequest.getGetUpdates().addFromProgressMarkerList(walletMarker);
@@ -216,54 +219,16 @@ function verifyNoWalletDataProgressMarkerExists(pbGetUpdates) {
 function injectClientCommand(pbResponse) {
   if (pbResponse.getErrorCode() == proto.sync_pb.SyncEnums.ErrorType.SUCCESS) {
     // 따로 처리 안해도 response 파라미터에 clientCommand값 들어가는지 확인할 것...
-    pbResponse.setClientCommand(clientCommand);
+    pbResponse.setClientCommand(pbClientCommand);
   }
 }
-
-/* protobufjs */
-function getSyncedProtobufMessage() {
-  let pb = new sync_pb();
-  let protojs = pb.getSyncProto();  //sync.proto파일 Load
-  if (true) {
-    sync_msg = protojs.root.lookupType('sync_pb.GetUpdatesMessage');  //sync.proto에 정의된 메시지 중에 요청에 맞는 메시지 Read
-  } else {
-    console.error('not reached');
-  }
-  //console.log('sync_msg: ', sync_msg);
-  return sync_msg;
-};
 
 function makeResponseBody(pbResponse) {
   pbResponse.setErrorCode(proto.sync_pb.SyncEnums.ErrorType.SUCCESS);
   pbResponse.setStoreBirthday(
-    sync.internalServer.accountModel.getStoreBirthday());
+    sync.loopbackServer.getStoreBirthday());
   let resbody = pbResponse.serializeBinary();
   return resbody;
-}
-
-
-function decodeRequestBody(body) {
-  console.log('\x1b[33m%s\x1b[0m', '\n\nDecode request body\n');
-  // body = new Buffer(body, 'utf-8');
-  if (typeof (body) == 'string') {
-    body = Buffer.from(body, 'binary');
-  };
-  let b = new Uint8Array(body.length);
-  for (i = 0; i < body.length; i++) {
-    b[i] = body[i];
-  }
-  console.log('arraybody:', b);
-  console.log('arraybodylength:', b.length)
-  console.log("body:", b);
-
-  //let bodydata = proto.sync_pb.ClientToServerMessage.deserializeBinary(b);
-  // console.log("bodydata storebirthday:", bodydata.getStoreBirthday());
-  // console.log("bodydata progressMarker:", bodydata.getGetUpdates().getFromProgressMarkerList());
-  let csMessageMsg = protojs.root.lookupType('sync_pb.ClientToServerMessage');
-  let bodyData = csMessageMsg.decode(b);
-  console.log("bodydata:", bodyData);
-  return bodyData;
-  //response.status(200).set('Content-Type', 'text/plain').send('body datadsafsdfsdf');
 }
 
 /* DB */
