@@ -1,28 +1,31 @@
-//Loopback Server Entity.h
-const assert = require('assert');
-const path = require('path');
-const workspaceDir = path.join(__dirname, '../../..');
-let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
-require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
+/* global proto */
+const assert = require("assert");
+const path = require("path");
+const workspaceDir = path.join(__dirname, "../../..");
+let mt = require(path.join(workspaceDir, "src/sync/base/model_type.js"));
+require(path.join(workspaceDir, "src/google/protocol/loopback_server_pb"));
 
 class LoopbackServerEntity {
   constructor(id, modelType, version, name) {
-    this.id = id;               //entity's ID
+    this.id = id; //entity's ID
     this.modelType = modelType; //entity's mt.ModelType
-    this.version = + new Date();//version;     //entity's version
-    this.name = name;           //entity's name
+    this.version = +new Date(); //version;     //entity's version
+    this.name = name; //entity's name
   }
 
-  setVersion(version) {  //int64_t
+  setVersion(version) {
+    //int64_t
     this.version = version;
   }
 
-  setName(name) {  //string
+  setName(name) {
+    //string
     this.name = name;
   }
 
-  setSpecifics(specifics) {  //sync_pb::EntitySpecifics
-    assert(typeof (specifics) == typeof (new proto.sync_pb.EntitySpecifics()));
+  setSpecifics(specifics) {
+    //sync_pb::EntitySpecifics
+    assert(typeof specifics == typeof new proto.sync_pb.EntitySpecifics());
     this.specifics = specifics;
   }
 
@@ -35,11 +38,11 @@ class LoopbackServerEntity {
   }
 
   serializeAsProto(pbSyncEntity) {
-    assert(false, "Pure Virtual Method");
+    assert(false, "Pure Virtual Method", "\ninput data:", pbSyncEntity);
   }
 
   getLoopbackServerEntityType() {
-    console.error('\x1b[31m%s\x1b[0m', 'Not Reached');
+    console.error("\x1b[31m%s\x1b[0m", "Not Reached");
     return proto.sync_pb.LoopbackServerEntity.Type.UNKNOWN;
   }
 
@@ -79,30 +82,31 @@ class LoopbackServerEntity {
       pbSyncEntity.setParentIdString(this.getParentId());
     }
   }
-};
+}
 
 /* static */
 function createId(modelType, innerId) {
   let fieldNumber = mt.getSpecificsFieldNumberFromModelType(modelType);
-  return fieldNumber + '_' + innerId; //아마도 테스트니까 나중에 바꿔야 될 듯
-};
+  return fieldNumber + "_" + innerId; //아마도 테스트니까 나중에 바꿔야 될 듯
+}
 
 /* static */
 function getTopLevelId(modelType) {
   return this.createId(modelType, mt.modelTypeToRootTag(modelType));
-};
+}
 
 /* static */
-function getModelTypeFromId(id) {//string //createId로 생성된 Id
+function getModelTypeFromId(id) {
+  //string //createId로 생성된 Id
   //base::SplitStringPiece(id, '_', KEEP_WHITESPACE, SPLIT_WANT_NONEMPTY);
   // TODO: 이렇게만 쪼개면 되는게 맞는지 확인 필요함... 아마 맞을 듯
-  let tokens = id.split('_');
+  let tokens = id.split("_");
   let fieldNumber = parseInt(tokens[0]);
   if (tokens.length != 2 || isNaN(fieldNumber)) {
     return mt.ModelType.UNSPECIFIED;
   }
   return mt.getModelTypeFromSpecificsFieldNumber(fieldNumber);
-};
+}
 
 exports.LoopbackServerEntity = LoopbackServerEntity;
 

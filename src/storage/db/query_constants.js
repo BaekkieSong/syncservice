@@ -1,5 +1,3 @@
-const { CREATE_QUERY } = 'CREATE';
-
 const createAccount = `
   CREATE TABLE IF NOT EXISTS account(
     index INTEGER AUTOINCREMENT,
@@ -59,5 +57,9 @@ const dummyDataQuery = `
 exports.create = createEntity;
 exports.insert = `
 INSERT INTO syncentity(id_string, mtime, ctime) VALUES(?, ?, ?)
-`
-exports.drop = (table_name) => dropQuery;
+`;
+exports.drop = () => dropQuery;
+
+exports.createAccount = createAccount;
+exports.insertQuery = insertQuery;
+exports.dummyDataQuery = dummyDataQuery;

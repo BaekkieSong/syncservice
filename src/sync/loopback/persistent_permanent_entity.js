@@ -1,23 +1,25 @@
-const assert = require('assert');
-const path = require('path');
-const workspaceDir = path.join(__dirname, '../../..');
-let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
-const se =
-  require(path.join(workspaceDir, "src/sync/loopback/server_entity.js"));
-require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
+/* global proto */
+const path = require("path");
+const workspaceDir = path.join(__dirname, "../../..");
+let mt = require(path.join(workspaceDir, "src/sync/base/model_type.js"));
+const se = require(path.join(
+  workspaceDir,
+  "src/sync/loopback/server_entity.js"
+));
+require(path.join(workspaceDir, "src/google/protocol/loopback_server_pb"));
 
 const kRootParentTag = "0";
 
 /* PersistentPermanentEntity */
 class PersistentPermanentEntity extends se.LoopbackServerEntity {
   constructor(
-    id,                     // string
-    version,                // int64_t
-    modelType,              // ModelType
-    name,                   // string
-    parentId,               // string
+    id, // string
+    version, // int64_t
+    modelType, // ModelType
+    name, // string
+    parentId, // string
     serverDefinedUniqueTag, // string
-    pbEntitySpecifics,      // entitySpecifics
+    pbEntitySpecifics // entitySpecifics
   ) {
     super(id, modelType, version, name);
     this.parentId = parentId;
@@ -36,7 +38,8 @@ class PersistentPermanentEntity extends se.LoopbackServerEntity {
   }
 
   /* override */
-  serializeAsProto(pbSyncEntity) {  // sync_pb::SyncEntity
+  serializeAsProto(pbSyncEntity) {
+    // sync_pb::SyncEntity
     this.serializeBaseProtoFields(pbSyncEntity);
     pbSyncEntity.setServerDefinedUniqueTag(this.serverDefinedUniqueTag);
   }
@@ -55,58 +58,81 @@ class PersistentPermanentEntity extends se.LoopbackServerEntity {
   getLoopbackServerEntityType() {
     return proto.sync_pb.LoopbackServerEntity.Type.PERMANENT;
   }
-};
+}
 
 /* static */
 /* Factory function. ServerTag는 전역적으로 유일해야 함 */
 // input type: ModelType, string, string, string
 function createNew(modelType, serverTag, name, parentServerTag) {
   if (modelType == mt.ModelType.UNSPECIFIED) {
-    console.error('\x1b[31m%s\x1b[0m', "The entity's ModelType is invalid.");
+    console.error("\x1b[31m%s\x1b[0m", "The entity's ModelType is invalid.");
     return undefined;
-  };
+  }
   if (serverTag == "") {
-    console.error('\x1b[31m%s\x1b[0m',
-      "A PersistentPermanentEntity must have a server tag.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "A PersistentPermanentEntity must have a server tag."
+    );
     return undefined;
-  };
+  }
   if (name == "") {
-    console.error('\x1b[31m%s\x1b[0m',
-      "The entity must have a non-empty name.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "The entity must have a non-empty name."
+    );
     return undefined;
-  };
+  }
   if (parentServerTag == "") {
-    console.error('\x1b[31m%s\x1b[0m',
-      "A PersistentPermanentEntity must have a parent server tag.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "A PersistentPermanentEntity must have a parent server tag."
+    );
     return undefined;
-  };
+  }
   if (parentServerTag == kRootParentTag) {
-    console.error('\x1b[31m%s\x1b[0m',
-      "Top-level entities should not be created with this factory.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "Top-level entities should not be created with this factory."
+    );
     return undefined;
-  };
+  }
   let id = se.createId(modelType, serverTag);
   let parentId = se.createId(modelType, parentServerTag);
   let pbEntitySpecifics = new proto.sync_pb.EntitySpecifics();
   mt.addDefaultFieldValue(modelType, pbEntitySpecifics);
   return new PersistentPermanentEntity(
-    id, 0, modelType, name, parentId, serverTag, pbEntitySpecifics);
-};
+    id,
+    0,
+    modelType,
+    name,
+    parentId,
+    serverTag,
+    pbEntitySpecifics
+  );
+}
 
 /* Top Level PersistentPermanentEntity 생성. 즉, 이 Entity의 부모가 root Entity.
 (root에 대한 PersistentPermanentEntity는 존재하지 않음) */
-function createTopLevel(modelType) {  // ModelType
+function createTopLevel(modelType) {
+  // ModelType
   if (modelType == mt.ModelType.UNSPECIFIED) {
-    console.error('\x1b[31m%s\x1b[0m', "The entity's ModelType is invalid.");
+    console.error("\x1b[31m%s\x1b[0m", "The entity's ModelType is invalid.");
     return undefined;
-  };
+  }
   let serverTag = mt.modelTypeToRootTag(modelType);
   let name = mt.modelTypeToString(modelType);
   let id = se.getTopLevelId(modelType);
   let pbEntitySpecifics = new proto.sync_pb.EntitySpecifics();
   mt.addDefaultFieldValue(modelType, pbEntitySpecifics);
   return new PersistentPermanentEntity(
-    id, 0, modelType, name, kRootParentTag, serverTag, pbEntitySpecifics);
+    id,
+    0,
+    modelType,
+    name,
+    kRootParentTag,
+    serverTag,
+    pbEntitySpecifics
+  );
 }
 
 /* Factory function. 현재 ID에 해당하는 serverEntity는 PASS,
@@ -116,15 +142,22 @@ Entity의 일부를 복사하여 생성하게 됨 */
 function createUpdatedNigoriEntity(pbClientEntity, currentServerEntity) {
   let modelType = currentServerEntity.getModelType();
   if (modelType != mt.ModelType.NIGORI) {
-    console.error('\x1b[31m%s\x1b[0m',
-      "This factory only supports NIGORI entities.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "This factory only supports NIGORI entities."
+    );
     return undefined;
-  };
+  }
   return new PersistentPermanentEntity(
-    currentServerEntity.id, currentServerEntity.version, modelType,
-    currentServerEntity.name, currentServerEntity.parentId,
-    mt.modelTypeToRootTag(modelType), pbClientEntity.getSpecifics());
-};
+    currentServerEntity.id,
+    currentServerEntity.version,
+    modelType,
+    currentServerEntity.name,
+    currentServerEntity.parentId,
+    mt.modelTypeToRootTag(modelType),
+    pbClientEntity.getSpecifics()
+  );
+}
 
 exports.PersistentPermanentEntity = PersistentPermanentEntity;
 

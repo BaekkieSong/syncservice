@@ -1,16 +1,25 @@
-const assert = require('assert');
-const path = require('path');
-const workspaceDir = path.join(__dirname, '../..');
-const mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
-require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
+/* global proto */
+const assert = require("assert");
+const path = require("path");
+const workspaceDir = path.join(__dirname, "../..");
+const mt = require(path.join(workspaceDir, "src/sync/base/model_type.js"));
+require(path.join(workspaceDir, "src/google/protocol/loopback_server_pb"));
 const persistentBookmark = require(path.join(
-  workspaceDir, 'src/sync/loopback/persistent_bookmark_entity.js'));
+  workspaceDir,
+  "src/sync/loopback/persistent_bookmark_entity.js"
+));
 const persistentPermanent = require(path.join(
-  workspaceDir, 'src/sync/loopback/persistent_permanent_entity.js'));
+  workspaceDir,
+  "src/sync/loopback/persistent_permanent_entity.js"
+));
 const persistentTombstone = require(path.join(
-  workspaceDir, 'src/sync/loopback/persistent_tombstone_entity.js'));
+  workspaceDir,
+  "src/sync/loopback/persistent_tombstone_entity.js"
+));
 const persistentUniqueClient = require(path.join(
-  workspaceDir, 'src/sync/loopback/persistent_unique_client_entity.js'));
+  workspaceDir,
+  "src/sync/loopback/persistent_unique_client_entity.js"
+));
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400; // net::HTTP_BAD_REQUEST
@@ -27,14 +36,14 @@ const kSyncedBookmarksFolderName = "Synced Bookmarks";
 /* public API */
 // python 테스트 서버에서 가져옴
 function makeNewKeystoreKey() {
-  let charRegix = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let randomKey = '';
+  let charRegix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let randomKey = "";
   for (var i = 0; i < KEYSTORE_KEY_LENGTH; ++i) {
     randomKey += charRegix.charAt(Math.floor(Math.random() * charRegix.length));
   }
-  console.log(`\x1b[35m%s\x1b[0m`, "Generate random keystore key: ", randomKey);
+  console.log("\x1b[35m%s\x1b[0m", "Generate random keystore key: ", randomKey);
   return randomKey;
-};
+}
 
 /* 업데이트 할 ModelType을 거르는 '체' 역할 */
 class UpdateSieve {
@@ -50,11 +59,12 @@ class UpdateSieve {
   가장 큰 version값이 됨 */
   setProgressMarkers(pbGetUpdatesResponse) {
     /* Map에서 modelType & version 값을 읽어옴 */
-    console.log('Set Response ProgressMarker:', this.responseVersionMap)
+    console.log("Set Response ProgressMarker:", this.responseVersionMap);
     for (const typeAndVersion of this.responseVersionMap) {
       let pbNewProgressMarker = new proto.sync_pb.DataTypeProgressMarker();
       pbNewProgressMarker.setDataTypeId(
-        mt.getSpecificsFieldNumberFromModelType(typeAndVersion[0]));
+        mt.getSpecificsFieldNumberFromModelType(typeAndVersion[0])
+      );
       pbNewProgressMarker.setToken(typeAndVersion[1].toString());
       pbGetUpdatesResponse.addNewProgressMarker(pbNewProgressMarker);
     }
@@ -62,83 +72,98 @@ class UpdateSieve {
   }
 
   /* Response Entity를 보낼지 말지 결정 */
-  clientWantsItem(serverEntity) {  // LoopbackServerEntity
+  clientWantsItem(serverEntity) {
+    // LoopbackServerEntity
     let modelType = serverEntity.modelType;
     if (!this.requestVersionMap.has(modelType)) {
-      console.log(`\x1b[36m%s\x1b[0m`,
-        "Client doesn't want to sync this item:", serverEntity.id);
+      console.log(
+        "\x1b[36m%s\x1b[0m",
+        "Client doesn't want to sync this item:",
+        serverEntity.id
+      );
       return false;
     }
     /* Only for tests */
-    if (this.requestVersionMap.get(modelType) <
-      serverEntity.version) {
-      console.log(`\x1b[35m%s\x1b[0m`,
-        `Respond to client: ${serverEntity.id}`);
+    if (this.requestVersionMap.get(modelType) < serverEntity.version) {
+      console.log("\x1b[35m%s\x1b[0m", `Respond to client: ${serverEntity.id}`);
     } else {
-      console.log(`\x1b[36m%s\x1b[0m`,
+      console.log(
+        "\x1b[36m%s\x1b[0m",
         `Don't respond to client: ${serverEntity.id} -`,
         `map's version: ${this.requestVersionMap.get(modelType)} >=`,
-        `lsEntity's version: ${serverEntity.version}`);
+        `lsEntity's version: ${serverEntity.version}`
+      );
     }
-    return this.requestVersionMap.get(modelType) <
-      serverEntity.version;
+    return this.requestVersionMap.get(modelType) < serverEntity.version;
   }
 
   /* 나중에 Response의 ProgressMarker를 Set할 때 사용하기 위해
   가장 높은 버전값의 내부 추적값을 업데이트 */
-  updateProgressMarker(serverEntity) {  // LoopbackServerEntity
+  updateProgressMarker(serverEntity) {
+    // LoopbackServerEntity
     // console.log(this.clientWantsItem(serverEntity));
 
     let modelType = serverEntity.modelType;
-    this.responseVersionMap.set(modelType,
-      Math.max(
-        this.responseVersionMap.get(modelType),
-        serverEntity.version));
+    this.responseVersionMap.set(
+      modelType,
+      Math.max(this.responseVersionMap.get(modelType), serverEntity.version)
+    );
   }
 
   /* ModelType에 대한 버전값을 알려주는 Map을 반환하는 API */
   messageToVersionMap(pbGetUpdatesMessage) {
-    assert(pbGetUpdatesMessage.getFromProgressMarkerList().length > 0,
+    assert(
+      pbGetUpdatesMessage.getFromProgressMarkerList().length > 0,
       `\x1b[31m A GetUpdates request must have at least one progress marker.
-       \x1b[0m`);
-    let modelTypeToVersionMapForRequest = new Map();  // 요청에 포함된 ModelType에 대한 버전값을 나타내는 Map
+       \x1b[0m`
+    );
+    let modelTypeToVersionMapForRequest = new Map(); // 요청에 포함된 ModelType에 대한 버전값을 나타내는 Map
     for (let i in pbGetUpdatesMessage.getFromProgressMarkerList()) {
       let marker = pbGetUpdatesMessage.getFromProgressMarkerList()[i];
       let version = 0;
       // 최초 Request인 경우, token값이 없거나 비어있을 경우, version은 0을 유지함
-      if (marker.hasToken() && marker.getToken() != '') {
+      if (marker.hasToken() && marker.getToken() != "") {
         // Token에서 버전값을 얻어내네!!!!????
         // TODO: 실제 오는 값은 Encoding된 값으로 보임. 확인 필요.
         // origin: base::StringToInt64
-        console.log(`${marker.getDataTypeId()}'s token value is:`,
-          `${String.fromCharCode.apply(null, marker.getToken())}`);
+        console.log(
+          `${marker.getDataTypeId()}'s token value is:`,
+          `${String.fromCharCode.apply(null, marker.getToken())}`
+        );
         version = parseInt(String.fromCharCode.apply(null, marker.getToken()));
         if (!version) {
           console.error(
-            `\x1b[31m%s\x1b[0m`, `Unable to parse progress marker token.`);
+            "\x1b[31m%s\x1b[0m",
+            "Unable to parse progress marker token."
+          );
         }
       }
-      let modelType =
-        mt.getModelTypeFromSpecificsFieldNumber(marker.getDataTypeId());
-      assert(false == modelTypeToVersionMapForRequest.has(modelType),
+      let modelType = mt.getModelTypeFromSpecificsFieldNumber(
+        marker.getDataTypeId()
+      );
+      assert(
+        false == modelTypeToVersionMapForRequest.has(modelType),
         `\x1b[31m Request already has the marker's ModelType: ${modelType}
-         \x1b[0m`);
+         \x1b[0m`
+      );
       if (modelType != mt.ModelType.UNSPECIFIED) {
         modelTypeToVersionMapForRequest.set(modelType, version);
       } else {
         console.error(
-          `\x1b[31m%s\x1b[0m`, "Unexpected modelType specifics field number.");
+          "\x1b[31m%s\x1b[0m",
+          "Unexpected modelType specifics field number."
+        );
       }
     }
     return modelTypeToVersionMapForRequest;
   }
-};
+}
 
 /* 동기화 처리 백엔드 */
 class LoopbackServer {
   constructor(persistentFile) {
     this.strongConsistencyModelEnabled = false;
-    this.version = + new Date();  //new Date().getTime();
+    this.version = +new Date(); //new Date().getTime();
     this.storeBirthday = 0;
     this.persistentFile = persistentFile;
     //this.observerForTests = null;
@@ -157,11 +182,11 @@ class LoopbackServer {
 
     // 일단 임시로 storeBirthday 정의함
     // 원래 LoadStateFromFile하면서 읽어오는 듯...
-    this.storeBirthday = 'd73d1631b1802438df3b0346cdbd8ba9704f5f12';
+    this.storeBirthday = "d73d1631b1802438df3b0346cdbd8ba9704f5f12";
     this.keystoreKeys = [];
     this.keystoreKeys.push(this.generateNewKeystoreKey());
     // ex) id: 32904_bookmark_bar
-    this.entities = new Map();  // id, unique<serverEntity>
+    this.entities = new Map(); // id, unique<serverEntity>
     this.topLevelPermanentItemIds = new Map();
     this.createDefaultPermanentItems();
   }
@@ -171,11 +196,14 @@ class LoopbackServer {
     //return base::RandBytesAsString(KEYSTORE_KEY_LENGTH);
   }
 
-  createPermanentBookmarkFolder(serverTag, name) {  // string, string
-    let serverEntity =
-      persistentPermanent.createNew(
-        mt.ModelType.BOOKMARKS, serverTag, name,
-        mt.modelTypeToRootTag(mt.ModelType.BOOKMARKS));
+  createPermanentBookmarkFolder(serverTag, name) {
+    // string, string
+    let serverEntity = persistentPermanent.createNew(
+      mt.ModelType.BOOKMARKS,
+      serverTag,
+      name,
+      mt.modelTypeToRootTag(mt.ModelType.BOOKMARKS)
+    );
     if (!serverEntity) {
       return false;
     }
@@ -186,12 +214,13 @@ class LoopbackServer {
 
   createDefaultPermanentItems() {
     /* 북마크는 항상 영구 폴더 필요. Nigori 타입도 영구 Root 폴더 필요. */
-    const permanentFolderTypes =
-      new Set(Object.values(mt.modelTypeSet).filter((it) => {
+    const permanentFolderTypes = new Set(
+      Object.values(mt.modelTypeSet).filter((it) => {
         if (it == mt.ModelType.BOOKMARKS || it == mt.ModelType.NIGORI) {
           return it;
         }
-      }));
+      })
+    );
     // console.log(permanentFolderTypes);
     for (const modelType of permanentFolderTypes) {
       // console.log(modelType);
@@ -202,22 +231,34 @@ class LoopbackServer {
       this.topLevelPermanentItemIds.set(modelType, topLevelEntity.id);
       this.saveEntity(topLevelEntity);
       if (modelType == mt.ModelType.BOOKMARKS) {
-        if (!this.createPermanentBookmarkFolder(
-          kBookmarkBarFolderServerTag, kBookmarkBarFolderName)) {
+        if (
+          !this.createPermanentBookmarkFolder(
+            kBookmarkBarFolderServerTag,
+            kBookmarkBarFolderName
+          )
+        ) {
           return false;
         }
-        if (!this.createPermanentBookmarkFolder(
-          kOtherBookmarksFolderServerTag, kOtherBookmarksFolderName)) {
+        if (
+          !this.createPermanentBookmarkFolder(
+            kOtherBookmarksFolderServerTag,
+            kOtherBookmarksFolderName
+          )
+        ) {
           return false;
         }
       }
     }
-    console.log(`\x1b[35m%s\x1b[0m`, 'Permanent items created: ',
-      this.topLevelPermanentItemIds);
+    console.log(
+      "\x1b[35m%s\x1b[0m",
+      "Permanent items created: ",
+      this.topLevelPermanentItemIds
+    );
     return true;
   }
 
-  getTopLevelPermanentItemId(modelType) {  //mt.ModelType
+  getTopLevelPermanentItemId(modelType) {
+    //mt.ModelType
     if (!this.topLevelPermanentItemIds.has(modelType)) {
       return undefined;
     } else {
@@ -226,16 +267,15 @@ class LoopbackServer {
   }
 
   updateEntityVersion(serverEntity) {
-    serverEntity.setVersion(+ new Date());
+    serverEntity.setVersion(+new Date());
   }
 
-  saveEntity(serverEntity) {  // unique<serverEntity>
+  saveEntity(serverEntity) {
+    // unique<serverEntity>
     if (!this.entities.has(serverEntity.id)) {
-      console.log(`\x1b[35m%s\x1b[0m`,
-        "New entity:", serverEntity.id);
+      console.log("\x1b[35m%s\x1b[0m", "New entity:", serverEntity.id);
     } else {
-      console.log(`\x1b[36m%s\x1b[0m`,
-        "Update entity:", serverEntity.id);
+      console.log("\x1b[36m%s\x1b[0m", "Update entity:", serverEntity.id);
     }
     this.updateEntityVersion(serverEntity);
     this.entities.set(serverEntity.id, serverEntity);
@@ -247,29 +287,35 @@ class LoopbackServer {
       sync_pb::ClientToServerResponse(deserialized)
   */
   handleCommand(pbMessage, pbResponse) {
-    console.log(`\x1b[33m%s\x1b[0m`, `Start handle command`);
+    console.log("\x1b[33m%s\x1b[0m", "Start handle command");
     /* thread check */
     // response.clear();
     /* 이미 deserialized된 메시지를 받았으므로 parse는 따로 하지 않음 */
     try {
-      if (pbMessage.hasStoreBirthday() &&
-        pbMessage.getStoreBirthday() != this.getStoreBirthday()) {
+      if (
+        pbMessage.hasStoreBirthday() &&
+        pbMessage.getStoreBirthday() != this.getStoreBirthday()
+      ) {
         pbResponse.setErrorCode(
-          proto.sync_pb.SyncEnums.ErrorType.NOT_MY_BIRTHDAY);
+          proto.sync_pb.SyncEnums.ErrorType.NOT_MY_BIRTHDAY
+        );
       } else {
         let success = false;
         switch (pbMessage.getMessageContents()) {
           case proto.sync_pb.ClientToServerMessage.Contents.GET_UPDATES:
             pbResponse.setGetUpdates(new proto.sync_pb.GetUpdatesResponse());
             success = this.handleGetUpdates(
-              pbMessage.getGetUpdates(), pbResponse.getGetUpdates());
+              pbMessage.getGetUpdates(),
+              pbResponse.getGetUpdates()
+            );
             break;
           case proto.sync_pb.ClientToServerMessage.Contents.COMMIT:
             pbResponse.setCommit(new proto.sync_pb.CommitResponse());
             success = this.handleCommit(
               pbMessage.getCommit(),
               pbMessage.getInvalidatorClientId(),
-              pbResponse.getCommit());
+              pbResponse.getCommit()
+            );
             break;
           case proto.sync_pb.ClientToServerMessage.Contents.CLEAR_SERVER_DATA:
             this.clearServerData();
@@ -279,6 +325,7 @@ class LoopbackServer {
           case proto.sync_pb.ClientToServerMessage.Contents.AUTHENTICATE:
             // Not Implemented
             success = true;
+            break;
           default:
             return HTTP_BAD_REQUEST;
         }
@@ -290,8 +337,11 @@ class LoopbackServer {
       pbResponse.setStoreBirthday(this.getStoreBirthday());
       pbResponse = pbResponse.serializeBinary();
     } catch (err) {
-      console.error(`\x1b[31m%s\x1b[0m`, `${err.name} - occurred. \n`,
-        `${err.stack}`);
+      console.error(
+        "\x1b[31m%s\x1b[0m",
+        `${err.name} - occurred. \n`,
+        `${err.stack}`
+      );
       return HTTP_INTERNAL_SERVER_ERROR;
     }
     /* Save 동작은 Async하게 되어야 함 */
@@ -320,45 +370,56 @@ class LoopbackServer {
     if (this.strongConsistencyModelEnabled) {
       /* 못 찾은 경우 undefined, false로 처리됨 */
       if (this.entities.has(pbClientEntity.getIdString())) {
-        if (this.entities.get(pbClientEntity.getIdString()).version !=
-          pbClientEntity.getVersion()) {
+        if (
+          this.entities.get(pbClientEntity.getIdString()).version !=
+          pbClientEntity.getVersion()
+        ) {
           pbEntryResponse.setResponseType(
-            proto.sync_pb.CommitResponse.ResponseType.CONFLICT);
+            proto.sync_pb.CommitResponse.ResponseType.CONFLICT
+          );
           return pbClientEntity.getIdString();
         }
       }
     }
 
-    let serverEntity;  // serverEntity
+    let serverEntity; // serverEntity
     const modelType = mt.getModelType(pbClientEntity);
     if (pbClientEntity.getDeleted()) {
-      serverEntity =
-        persistentTombstone.createFromEntity(pbClientEntity);
+      serverEntity = persistentTombstone.createFromEntity(pbClientEntity);
       if (serverEntity) {
         this.deleteChildren(pbClientEntity.getIdString());
       }
     } else if (modelType == mt.ModelType.NIGORI) {
       /* nigori는 클라이언트가 업데이트 해야하는 유일한 permanent 항목 타입 */
-      console.error(this.entities.has(pbClientEntity.getIdString()), `\x1b[31m
-      The client should have id_string: ${pbClientEntity.getIdString} \x1b[0m`);
-      serverEntity = persistentPermanent.createUpdatedNigoriEntity(pbClientEntity, this.entities.get(pbClientEntity.getIdString())[1]);
+      console.error(
+        this.entities.has(pbClientEntity.getIdString()),
+        `\x1b[31m
+      The client should have id_string: ${pbClientEntity.getIdString} \x1b[0m`
+      );
+      serverEntity = persistentPermanent.createUpdatedNigoriEntity(
+        pbClientEntity,
+        this.entities.get(pbClientEntity.getIdString())[1]
+      );
     } else if (modelType == mt.ModelType.BOOKMARKS) {
       if (this.entities.has(pbClientEntity.getIdString())) {
         serverEntity = persistentBookmark.createUpdatedVersion(
           pbClientEntity,
           pbClientEntity.this.entities.get(pbClientEntity.getIdString())[1],
-          parentId);
+          parentId
+        );
       } else {
         serverEntity = persistentBookmark.createNew(
-          pbClientEntity, parentId, clientGuid);
+          pbClientEntity,
+          parentId,
+          clientGuid
+        );
       }
     } else {
-      serverEntity =
-        persistentUniqueClient.createFromEntity(pbClientEntity);
+      serverEntity = persistentUniqueClient.createFromEntity(pbClientEntity);
     }
 
     if (!serverEntity) {
-      return '';
+      return "";
     }
     const id = serverEntity.id;
     this.saveEntity(serverEntity);
@@ -378,16 +439,17 @@ class LoopbackServer {
   /* input type: string, sync_pb::CommitResponse.EntryResponse* */
   buildEntryResponseForSuccessfulCommit(entityId, pbEntryResponse) {
     if (false == this.entities.has(entityId)) {
-      console.error(`\x1b[31m%s\x1b[0m`, `Entities should have: ${entityId}.`)
+      console.error("\x1b[31m%s\x1b[0m", `Entities should have: ${entityId}.`);
     }
     const serverEntity = this.entities.get(entityId);
     pbEntryResponse.setResponseType(
-      this.responseTypeOverride ?
-        this.responseTypeOverride.Run(serverEntity) :// Not Implemented
-        proto.sync_pb.CommitResponse.ResponseType.SUCCESS);
+      this.responseTypeOverride
+        ? this.responseTypeOverride.Run(serverEntity) // Not Implemented
+        : proto.sync_pb.CommitResponse.ResponseType.SUCCESS
+    );
     pbEntryResponse.setIdString(serverEntity.id);
     if (serverEntity.isDeleted()) {
-      pbEntryResponse.setVersion(+ new Date());
+      pbEntryResponse.setVersion(+new Date());
     } else {
       pbEntryResponse.setVersion(serverEntity.version);
       pbEntryResponse.setName(serverEntity.name);
@@ -405,15 +467,15 @@ class LoopbackServer {
       return false;
     }
     // parentId는 serverEntity의 다른 멤버 변수와 달리 get API 필요 */
-    if (this.entities.get(id)[1].getParentId() == potentialParentId) {
+    if (this.entities.get(id).getParentId() == potentialParentId) {
       return true;
     }
     // recursive 체크.
-    return this.isChild(serverEntity.getParentId(), potentialParentId);
+    return this.isChild(this.entities.get(id).getParentId(), potentialParentId);
   }
 
   deleteChildren(parentId) {
-    let tombstones = [];  // vector<sync_pb::SyncEntity>
+    let tombstones = []; // vector<sync_pb::SyncEntity>
     // parentId의 모든 Child 탐색
     for (let idAndEntity of this.entities) {
       if (this.isChild(idAndEntity[0], parentId)) {
@@ -428,9 +490,12 @@ class LoopbackServer {
   }
 
   handleCommit(pbCommitMessage, invalidatorClientId, pbCommitResponse) {
-    console.log('\x1b[33m%s\x1b[0m', 'Handle commit');
-    console.log('\x1b[35m%s\x1b[0m', 'Commit message:',
-      JSON.stringify(pbCommitMessage.toObject()));
+    console.log("\x1b[33m%s\x1b[0m", "Handle commit");
+    console.log(
+      "\x1b[35m%s\x1b[0m",
+      "Commit message:",
+      JSON.stringify(pbCommitMessage.toObject())
+    );
     let clientToServerIds = new Map();
     let guid = pbCommitMessage.getCacheGuid();
     let commitedModelTypes = new Set(); // modelTypeSet
@@ -446,8 +511,13 @@ class LoopbackServer {
         parentId = clientToServerIds.get(parentId);
       }
       const entityId = this.commitEntity(
-        pbSyncEntity, pbEntryResponse, guid, parentId);
-      if (!entityId) {  // ==''
+        pbSyncEntity,
+        pbEntryResponse,
+        guid,
+        parentId
+      );
+      if (!entityId) {
+        // ==''
         return false;
       }
       if (entityId != pbSyncEntity.getIdString()) {
@@ -457,8 +527,10 @@ class LoopbackServer {
       if (this.entities.has(entityId)) {
         commitedModelTypes.add(this.entities.get(entityId).modelType);
       } else {
-        console.error(`\x1b[31m%s\x1b[0m`,
-          `entities should have the entityId: ${entityId}`);
+        console.error(
+          "\x1b[31m%s\x1b[0m",
+          `entities should have the entityId: ${entityId}`
+        );
       }
     }
 
@@ -477,18 +549,25 @@ class LoopbackServer {
   }
 
   handleGetUpdates(pbGetUpdatesMessage, pbGetUpdatesResponse) {
-    console.log('\x1b[33m%s\x1b[0m', 'Handle get_updates');
-    console.log('\x1b[35m%s\x1b[0m', 'Updates message:',
-      JSON.stringify(pbGetUpdatesMessage.toObject()));
+    console.log("\x1b[33m%s\x1b[0m", "Handle get_updates");
+    console.log(
+      "\x1b[35m%s\x1b[0m",
+      "Updates message:",
+      JSON.stringify(pbGetUpdatesMessage.toObject())
+    );
     pbGetUpdatesResponse.setChangesRemaining(0);
     let sieve = new UpdateSieve(pbGetUpdatesMessage);
 
     /* 모바일 북마크 생성.
     client UI에서 'Synced Bookmarks' => 'Mobile Bookmarks'로
     rename생성. 실패할 경우 에러이므로 false 리턴 */
-    if (pbGetUpdatesMessage.getCreateMobileBookmarksFolder() &&
+    if (
+      pbGetUpdatesMessage.getCreateMobileBookmarksFolder() &&
       !this.createPermanentBookmarkFolder(
-        kSyncedBookmarksFolderServerTag, kSyncedBookmarksFolderName)) {
+        kSyncedBookmarksFolderServerTag,
+        kSyncedBookmarksFolderName
+      )
+    ) {
       return false;
     }
 
@@ -505,14 +584,17 @@ class LoopbackServer {
     pbGetUpdatesMessage.getBatchSize(): 클라이언트가 요구하는 최대 전송 수
     this.maxGetUpdatesBatchSize: 서버 한계 전송 수 */
     let maxBatchSize = this.maxGetUpdatesBatchSize;
-    if (pbGetUpdatesMessage.hasBatchSize() &&
-      pbGetUpdatesMessage.getBatchSize() > 0) {
-      console.log('requested batch size:', pbGetUpdatesMessage.getBatchSize());
+    if (
+      pbGetUpdatesMessage.hasBatchSize() &&
+      pbGetUpdatesMessage.getBatchSize() > 0
+    ) {
+      console.log("requested batch size:", pbGetUpdatesMessage.getBatchSize());
       maxBatchSize = Math.min(maxBatchSize, pbGetUpdatesMessage.getBatchSize());
     }
     if (wantedEntities.length > maxBatchSize) {
       pbGetUpdatesResponse.setChangesRemaining(
-        wantedEntities.length - maxBatchSize);
+        wantedEntities.length - maxBatchSize
+      );
       /* 원래 부분 정렬(std::partial_sort)로 maxBatchSize 만큼만 정렬하여 처리.
       여기선 일단 전체 정렬 수행 */
       // TODO: 근데 왜 내림차순 정렬하지..? 버전 낮은거부터 처리할 거 아닌가..?
@@ -521,7 +603,7 @@ class LoopbackServer {
       wantedEntities = wantedEntities.splice(0, maxBatchSize);
     }
     let sendEncryptionKeysBasedOnNigori = false;
-    console.log('Num of GetUpdates entity size:', wantedEntities.length)
+    console.log("Num of GetUpdates entity size:", wantedEntities.length);
     for (const serverEntity of wantedEntities) {
       sieve.updateProgressMarker(serverEntity);
       let pbSyncEntity = new proto.sync_pb.SyncEntity();
@@ -532,13 +614,16 @@ class LoopbackServer {
       /* NIGORI 암호화 타입 */
       if (serverEntity.modelType == mt.ModelType.NIGORI) {
         sendEncryptionKeysBasedOnNigori =
-          (pbSyncEntity.getSpecifics().getNigori().getPassphraseType() ==
-            proto.sync_pb.NigoriSpecifics.PassphraseType.KEYSTORE_PASSPHRASE);
+          pbSyncEntity.getSpecifics().getNigori().getPassphraseType() ==
+          proto.sync_pb.NigoriSpecifics.PassphraseType.KEYSTORE_PASSPHRASE;
       }
     }
-    if (sendEncryptionKeysBasedOnNigori ||
-      pbGetUpdatesMessage.getNeedEncryptionKey()) {
-      for (const key of this.keystoreKeys) {  // Array
+    if (
+      sendEncryptionKeysBasedOnNigori ||
+      pbGetUpdatesMessage.getNeedEncryptionKey()
+    ) {
+      for (const key of this.keystoreKeys) {
+        // Array
         // key는 string인데 encryption_keys는 Bytes임... 어떻게 변환되는건지..?
         pbGetUpdatesResponse.addEncryptionKeys(key);
       }
@@ -558,9 +643,10 @@ class LoopbackServer {
   getSyncEntitiesByModelType(modelType) {
     let pbSyncEntities = [];
     for (const serverEntity of this.entities.values()) {
-      if (!(serverEntity.isDeleted() ||
-        serverEntity.isPermanent()) &&
-        serverEntity.modelType == modelType) {
+      if (
+        !(serverEntity.isDeleted() || serverEntity.isPermanent()) &&
+        serverEntity.modelType == modelType
+      ) {
         let pbSyncEntity = new proto.sync_pb.SyncEntity();
         serverEntity.serializeAsProto(pbSyncEntity);
         pbSyncEntities.push(pbSyncEntity);
@@ -572,11 +658,13 @@ class LoopbackServer {
   /* Only For Tests
   주어진 모델 타입의 Permanent 항목들만 리턴 */
   getPermanentSyncEntitiesByModelType(modelType) {
-    pbSyncEntities = [];
+    let pbSyncEntities = [];
     for (const serverEntity of this.entities.values()) {
-      if (!(serverEntity.isDeleted()) &&
+      if (
+        !serverEntity.isDeleted() &&
         serverEntity.isPermanent() &&
-        serverEntity.modelType == modelType) {
+        serverEntity.modelType == modelType
+      ) {
         let pbSyncEntity = new proto.sync_pb.SyncEntity();
         serverEntity.serializeAsProto(pbSyncEntity);
         pbSyncEntities.push(pbSyncEntity);
@@ -584,7 +672,7 @@ class LoopbackServer {
     }
     return pbSyncEntities;
   }
-};
+}
 
 let loopbackServer = new LoopbackServer();
 exports.loopbackServer = loopbackServer;

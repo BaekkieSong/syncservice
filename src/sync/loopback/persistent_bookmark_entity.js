@@ -1,31 +1,34 @@
-const assert = require('assert');
-const path = require('path');
-const workspaceDir = path.join(__dirname, '../../..');
-let mt = require(path.join(workspaceDir, 'src/sync/base/model_type.js'));
-const se =
-  require(path.join(workspaceDir, "src/sync/loopback/server_entity.js"));
-require(path.join(workspaceDir, 'src/google/protocol/loopback_server_pb'));
-const { v4: uuidv4 } = require('uuid');
+/* global proto */
+const path = require("path");
+const workspaceDir = path.join(__dirname, "../../..");
+let mt = require(path.join(workspaceDir, "src/sync/base/model_type.js"));
+const se = require(path.join(
+  workspaceDir,
+  "src/sync/loopback/server_entity.js"
+));
+require(path.join(workspaceDir, "src/google/protocol/loopback_server_pb"));
+const { v4: uuidv4 } = require("uuid");
 
 /* local namespace */
-function isBookmark(pbClientEntity) {  // sync_pb::SyncEntity
+function isBookmark(pbClientEntity) {
+  // sync_pb::SyncEntity
   return mt.getModelType(pbClientEntity) == mt.ModelType.BOOKMARKS;
-};
+}
 
 /* PersistentBookmarkEntity */
 class PersistentBookmarkEntity extends se.LoopbackServerEntity {
   constructor(
-    id,                     // string
-    version,                // int64_t
-    name,                   // string
-    originatorCacheGuid,    // string
+    id, // string
+    version, // int64_t
+    name, // string
+    originatorCacheGuid, // string
     originatorClientItemId, // string
-    pbUniquePosition,       // sync_pb::UniquePostion
-    pbEntitySpecifics,      // sync_pb::EntitySpecifics
-    folder,                 // bool
-    parentId,               // string
-    creationTime,           // int64_t
-    lastModifiedTime        // int64_t
+    pbUniquePosition, // sync_pb::UniquePostion
+    pbEntitySpecifics, // sync_pb::EntitySpecifics
+    folder, // bool
+    parentId, // string
+    creationTime, // int64_t
+    lastModifiedTime // int64_t
   ) {
     super(id, mt.ModelType.BOOKMARKS, version, name);
     this.originatorCacheGuid = originatorCacheGuid;
@@ -34,11 +37,14 @@ class PersistentBookmarkEntity extends se.LoopbackServerEntity {
     this.folder = folder;
     this.parentId = parentId;
     this.creationTime = creationTime;
-    this.lastModifiedTime = + new Date();/* lastModifiedTime */
+
+    this.lastModifiedTime = lastModifiedTime;
+    this.lastModifiedTime = +new Date(); /* lastModifiedTime */
     this.setSpecifics(pbEntitySpecifics);
   }
 
-  setParentId(parentId) {  // string
+  setParentId(parentId) {
+    // string
     this.parentId = parentId;
   }
 
@@ -54,14 +60,18 @@ class PersistentBookmarkEntity extends se.LoopbackServerEntity {
   }
 
   /* override */
-  serializeAsProto(pbSyncEntity) {  // sync_pb::SyncEntity
+  serializeAsProto(pbSyncEntity) {
+    // sync_pb::SyncEntity
     this.serializeBaseProtoFields(pbSyncEntity);
     pbSyncEntity.setOriginatorCacheGuid(this.originatorCacheGuid);
     pbSyncEntity.setOriginatorClientItemId(this.originatorClientItemId);
     pbSyncEntity.setCtime(this.creationTime);
     pbSyncEntity.setMtime(this.lastModifiedTime);
     pbSyncEntity.setUniquePosition(
-      new proto.sync_pb.UniquePosition(this.uniquePosition));
+      this.uniquePosition
+        ? new proto.sync_pb.UniquePosition(this.uniquePosition)
+        : undefined
+    );
     return pbSyncEntity;
   }
 
@@ -74,7 +84,7 @@ class PersistentBookmarkEntity extends se.LoopbackServerEntity {
   getLoopbackServerEntityType() {
     return proto.sync_pb.LoopbackServerEntity.Type.BOOKMARK;
   }
-};
+}
 
 /* static */
 /* Factory function. 북마크 Specifics가 처음 서버에서 사용되려 할 때만 호출됨 */
@@ -82,18 +92,25 @@ class PersistentBookmarkEntity extends se.LoopbackServerEntity {
 function createNew(pbClientEntity, parentId, clientGuid) {
   if (!isBookmark(pbClientEntity)) {
     return undefined;
-  };
+  }
   // const id = se.createId(mt.ModelType.BOOKMARKS,/*TODO: base::GenerateGUID()*/);
   const id = se.createId(mt.ModelType.BOOKMARKS, uuidv4());
   const originatorCacheGuid = clientGuid;
   const originatorClientItemId = pbClientEntity.getIdString();
   return new PersistentBookmarkEntity(
-    id, 0, pbClientEntity.getName(),
-    originatorCacheGuid, originatorClientItemId,
-    pbClientEntity.getUniquePosition(), pbClientEntity.getSpecifics(),
-    pbClientEntity.getFolder(), parentId, pbClientEntity.getCtime(),
-    pbClientEntity.getMtime());
-};
+    id,
+    0,
+    pbClientEntity.getName(),
+    originatorCacheGuid,
+    originatorClientItemId,
+    pbClientEntity.getUniquePosition(),
+    pbClientEntity.getSpecifics(),
+    pbClientEntity.getFolder(),
+    parentId,
+    pbClientEntity.getCtime(),
+    pbClientEntity.getMtime()
+  );
+}
 
 /* Factory function. 현재 ID에 해당하는 serverEntity는 PASS,
 클라이언트가 항상 완전한 Entity를 전송하지 않으므로, 
@@ -106,31 +123,44 @@ function createUpdateVersion(pbClientEntity, currentServerEntity, parentId) {
   if (!isBookmark(pbClientEntity)) {
     return undefined;
   }
-  const currentBookmarkEntity = currentServerEntity;  // static_cast
+  const currentBookmarkEntity = currentServerEntity; // static_cast
   const originatorCacheGuid = currentBookmarkEntity.originatorCacheGuid;
   const originatorClientItemId = currentBookmarkEntity.originatorClientItemId;
   return new PersistentBookmarkEntity(
-    pbClientEntity.getIdString(), 0, pbClientEntity.getName(),
-    originatorCacheGuid, originatorClientItemId,
-    pbClientEntity.getUniquePosition(), pbClientEntity.getSpecifics(),
-    pbClientEntity.getFolder(), parentId, pbClientEntity.getCtime(),
-    pbClientEntity.getMtime());
-};
+    pbClientEntity.getIdString(),
+    0,
+    pbClientEntity.getName(),
+    originatorCacheGuid,
+    originatorClientItemId,
+    pbClientEntity.getUniquePosition(),
+    pbClientEntity.getSpecifics(),
+    pbClientEntity.getFolder(),
+    parentId,
+    pbClientEntity.getCtime(),
+    pbClientEntity.getMtime()
+  );
+}
 
 /* Factory function. Persistent Storage에 저장된 정보를 deserialize할 때 사용 */
-function createFromEntity(pbClientEntity) {  // sync_pb::SyncEntity
+function createFromEntity(pbClientEntity) {
+  // sync_pb::SyncEntity
   if (!isBookmark(pbClientEntity)) {
     return undefined;
   }
   return new PersistentBookmarkEntity(
-    pbClientEntity.getIdString(), pbClientEntity.getVersion(),
-    pbClientEntity.getName(), pbClientEntity.getOriginatorCacheGuid(),
+    pbClientEntity.getIdString(),
+    pbClientEntity.getVersion(),
+    pbClientEntity.getName(),
+    pbClientEntity.getOriginatorCacheGuid(),
     pbClientEntity.getOriginatorClientItemId(),
-    pbClientEntity.getUniquePosition(), pbClientEntity.getSpecifics(),
-    pbClientEntity.getFolder(), pbClientEntity.getParentIdString(),
-    pbClientEntity.getCtime(), pbClientEntity.getMtime());
-};
-
+    pbClientEntity.getUniquePosition(),
+    pbClientEntity.getSpecifics(),
+    pbClientEntity.getFolder(),
+    pbClientEntity.getParentIdString(),
+    pbClientEntity.getCtime(),
+    pbClientEntity.getMtime()
+  );
+}
 
 exports.PersistentBookmarkEntity = PersistentBookmarkEntity;
 
