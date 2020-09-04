@@ -15,12 +15,26 @@ function isBookmark(pbClientEntity) {
   return mt.getModelType(pbClientEntity) == mt.ModelType.BOOKMARKS;
 }
 
+/* Tombstone 처리
+삭제되는 북마크는 다음과 같이 리턴됨(9개)
+id_string: '고유값'
+ctime:
+mtime:
+deleted: true
+name: tombstone
+originator_cache_guid:
+originator_client_item_id:
+position_in_parent: 0
+version
+*/
+
 /* PersistentBookmarkEntity */
 class PersistentBookmarkEntity extends se.LoopbackServerEntity {
   constructor(
     id, // string
     version, // int64_t
     name, // string
+    // ordinal_in_parent,
     originatorCacheGuid, // string
     originatorClientItemId, // string
     pbUniquePosition, // sync_pb::UniquePostion

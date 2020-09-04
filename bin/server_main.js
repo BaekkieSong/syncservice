@@ -186,7 +186,7 @@ function handle(pbRequest, pbResponse, parsedData) {
   /* wallet 후처리
   request에 wallet정보를 다시 추가하여 처리 후, response에 결과값 반영 */
   if (walletMarker) {
-    pbRequest.getGetUpdates().addFromProgressMarkerList(walletMarker);
+    pbRequest.getGetUpdates().addFromProgressMarker(walletMarker);
     console.log("\x1b[33m%s\x1b[0m", "add wallet marker");
     if (httpStatusCode == 200) {
       handleWalletRequest(pbRequest, walletMarker, pbResponse);
@@ -217,22 +217,29 @@ function handleWalletRequest(pbRequest, walletMarker, pbResponse) {
     walletMarker,
     pbResponse.getGetUpdates()
   );
-  //response = res.toJSON();  // 이 코드 없어도 response에 값 적용됨.
+  response = res.toJSON(); // 이 코드 없어도 response에 값 적용됨.
 }
 
 // input type: vector<sync_pb.SyncEntity>, marker, sync_pb.GetUpdatesResponse
 function populateWalletResults(walletEntities, walletMarker, pbGetUpdates) {
   verifyNoWalletDataProgressMarkerExists(pbGetUpdates);
   let marker = new proto.sync_pb.DataTypeProgressMarker();
-  marker.setDataTypeId(sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
+  marker.setDataTypeId(
+    mt.getSpecificsFieldNumberFromModelType(mt.ModelType.AUTOFILL_WALLET_DATA)
+  );
   pbGetUpdates.addNewProgressMarker(marker);
   console.log("getUpdates:", pbGetUpdates);
   // TODO: 실제 Entities에 대한 Wallet처리 로직 구현
 }
 
 function verifyNoWalletDataProgressMarkerExists(pbGetUpdates) {
-  for (const marker of pbGetUpdates.getNewProgressMarker()) {
-    assert(marker.getDataTypeId() != sync.SyncTypeName.AUTOFILL_WALLET_DATA.id);
+  for (const marker of pbGetUpdates.getNewProgressMarkerList()) {
+    assert(
+      marker.getDataTypeId() !=
+        mt.getSpecificsFieldNumberFromModelType(
+          mt.ModelType.AUTOFILL_WALLET_DATA
+        )
+    );
   }
 }
 

@@ -23,7 +23,7 @@ let marker = new proto.sync_pb.DataTypeProgressMarker();
 marker.setDataTypeId(
   mt.getSpecificsFieldNumberFromModelType(mt.ModelType.BOOKMARKS)
 );
-marker.setToken(Buffer.from("77777"));
+marker.setToken("77777"); //Buffer.from("77777"));
 pbMessage.getGetUpdates().addFromProgressMarker(marker);
 
 let marker2 = new proto.sync_pb.DataTypeProgressMarker();

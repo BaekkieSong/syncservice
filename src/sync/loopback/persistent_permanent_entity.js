@@ -140,7 +140,7 @@ function createTopLevel(modelType) {
 Entity의 일부를 복사하여 생성하게 됨 */
 // input type: sync_pb::SyncEntity, LoopbackServerEntity
 function createUpdatedNigoriEntity(pbClientEntity, currentServerEntity) {
-  let modelType = currentServerEntity.getModelType();
+  let modelType = currentServerEntity.modelType;
   if (modelType != mt.ModelType.NIGORI) {
     console.error(
       "\x1b[31m%s\x1b[0m",

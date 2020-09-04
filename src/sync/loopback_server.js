@@ -130,6 +130,8 @@ class UpdateSieve {
           `${marker.getDataTypeId()}'s token value is:`,
           `${String.fromCharCode.apply(null, marker.getToken())}`
         );
+        console.log(marker.getToken_asB64());
+        console.log(String.fromCharCode.apply(null, marker.getToken_asU8()));
         version = parseInt(String.fromCharCode.apply(null, marker.getToken()));
         if (!version) {
           console.error(
@@ -332,6 +334,12 @@ class LoopbackServer {
         if (!success) {
           return HTTP_INTERNAL_SERVER_ERROR;
         }
+        let clientCommand = newproto.sync_pb.ClientCommand();
+        clientCommand.setMaxCommitBatchSize(90);
+        clientCommand.setSessionsCommitDelaySeconds(11);
+        clientCommand.setSetSyncLongPollInterval(21600); // 6hours
+        clientCommand.setSetSyncPollInterval(14400); // 4hours
+        pbResponse.setClientCommand(clientCommand);
         pbResponse.setErrorCode(proto.sync_pb.SyncEnums.ErrorType.SUCCESS);
       }
       pbResponse.setStoreBirthday(this.getStoreBirthday());
@@ -391,20 +399,20 @@ class LoopbackServer {
       }
     } else if (modelType == mt.ModelType.NIGORI) {
       /* nigori는 클라이언트가 업데이트 해야하는 유일한 permanent 항목 타입 */
-      console.error(
+      assert(
         this.entities.has(pbClientEntity.getIdString()),
         `\x1b[31m
-      The client should have id_string: ${pbClientEntity.getIdString} \x1b[0m`
+      The client should have id_string: ${pbClientEntity.getIdString()} \x1b[0m`
       );
       serverEntity = persistentPermanent.createUpdatedNigoriEntity(
         pbClientEntity,
-        this.entities.get(pbClientEntity.getIdString())[1]
+        this.entities.get(pbClientEntity.getIdString())
       );
     } else if (modelType == mt.ModelType.BOOKMARKS) {
       if (this.entities.has(pbClientEntity.getIdString())) {
         serverEntity = persistentBookmark.createUpdatedVersion(
           pbClientEntity,
-          pbClientEntity.this.entities.get(pbClientEntity.getIdString())[1],
+          pbClientEntity.this.entities.get(pbClientEntity.getIdString()),
           parentId
         );
       } else {
@@ -499,6 +507,10 @@ class LoopbackServer {
     let clientToServerIds = new Map();
     let guid = pbCommitMessage.getCacheGuid();
     let commitedModelTypes = new Set(); // modelTypeSet
+    console.log("guid:", guid);
+    console.log("guid as B64", window.atob(guid));
+    //let guidString = String.fromCharCode.apply(null, guid);
+    //console.log("guidString:", guidString);
 
     /* Commit Entry항목별로 commitEntity를 수행
     처리된 정보는 pbCommitResponse에 저장되어 리턴됨 */

@@ -20,3 +20,22 @@ ToGate의 동기화 서버 코드(NodeJS)
 ## 테스트
 * node [unittest명]
   * ex) node ./bin/client_unittest.js
+* jest
+  * 테스트 실행
+    * package.json에서 "scripts": "test"를 다음과 같이 수정
+      * "test": "jest"
+    * npm test
+  * 테스트 옵션
+    * [옵션 목록](https://jestjs.io/docs/en/cli)
+    * --colors: 결과 출력 강조
+    * --json --outputFile=[파일명]: '파일명'에 결과를 Json으로 작성
+    * --logHeapUsage: 테스트별 heap사용량 표시
+    * --onlyChanged: 마지막 커밋이후 변경과 관련된 테스트만 수행
+    * --maxWorkers=[num]: 작업에 사용할 워커 수 지정
+    * --projects path1 path2: 여러 프로젝트 테스트 수행
+    * --testNamePattern=[string]: 각 테스트 이름중에 'string'을 포함하는 테스트만 수행
+    * --testPathPattern=[string]: 각 테스트 경로중에 'string'에 위치한 테스트만 수행
+    * --coverage=true
+    * --coverageProvider=babel/v8: 코드 계측 공급자 설정
+    * --watch/--watchAll: 파일 변경시마다 테스트 새로 수행
+
